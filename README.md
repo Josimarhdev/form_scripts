@@ -20,7 +20,7 @@ Este repositório contém uma coleção de formulários e scripts associados à 
    git clone https://github.com/Josimarhdev/form_scripts.git
 2. Navegue até o diretório desejado:
    ```
-   cd form_scripts/form1
+   cd form_scripts/scripts
 3. Execute o script correspondente:
    ```
    python script_form1.py (exemplo para o script do form1)
