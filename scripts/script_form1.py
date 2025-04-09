@@ -2,68 +2,26 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from datetime import datetime
 import unicodedata
-
-
-excel_file_input = "/home/josimar/Documentos/planilhas/form1/planilhas_consumo/form1.xlsx" 
-planilhas_auxiliares = {
-    "belem": "/home/josimar/Documentos/planilhas/form1/planilhas_consumo/belem.xlsx",
-    "expansao": "/home/josimar/Documentos/planilhas/form1/planilhas_consumo/expansao.xlsx",
-    "grs": "/home/josimar/Documentos/planilhas/form1/planilhas_consumo/GRS.xlsx"
-}
-
-
-cabeçalho_fill = PatternFill(start_color="003366", end_color="003366", fill_type="solid")  
-cabeçalho_font = Font(color="FFFFFF", bold=True, name='Arial', size=11)  
-
-
-enviado_fill = PatternFill(start_color="006400", end_color="006400", fill_type="solid")  
-enviado_font = Font(color="FFFFFF", name='Arial', size=11)  
-semtecnico_fill = PatternFill(start_color= "808080", end_color = "808080", fill_type = "solid")
-atrasado_fill = PatternFill(start_color= "FF6400", end_color = "FF6400", fill_type = "solid")
-
-validado_nao_fill = PatternFill(start_color="FF6666", end_color="FF6666", fill_type="solid")  
-validado_sim_fill = PatternFill(start_color="66FF66", end_color="66FF66", fill_type="solid")  
-
-
-cores_regionais = {
-    "Gabriel": "A9C5E6",  
-    "Bianca": "FFFF99",   
-    "Valquiria": "B2FFFF",  
-    "Luana": "FFCCFF", 
-    "Larissa": "F1E0C6", 
-    "Paranavai": "9B59B6",  
-    "Ana Paula" : "993399", 
-    "Londrina": "A9C5E6",  
-    "Francisco Beltrão": "B2FFFF",  
-    "Maringá": "FFCCFF", 
-    "Curitiba": "FFFF99",  
-    "Guarapuava": "F1E0C6"  
-}
-
-
-bordas = Border(
-    top=Side(border_style="thin", color="000000"),
-    bottom=Side(border_style="thin", color="000000"),
-    left=Side(border_style="thin", color="000000"),
-    right=Side(border_style="thin", color="000000")
+from pathlib import Path
+from utils import (
+    cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
+    semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill,
+    cores_regionais, bordas, alinhamento,
+    corrigir_acentuacao, normalizar_texto
 )
 
 
-alinhamento = Alignment(horizontal="center", vertical="center")
+caminho_script = Path(__file__).resolve()
+pasta_scripts = caminho_script.parent
+pasta_form1 = pasta_scripts.parent / "form1"
 
 
-def corrigir_acentuacao(texto):
-    try:
-        return texto.encode('latin1').decode('utf-8')
-    except (UnicodeDecodeError, AttributeError):
-        return texto
-
-def normalizar_texto(texto):
-    if isinstance(texto, str):
-        texto = texto.strip().lower()
-        texto = unicodedata.normalize('NFKD', texto).encode('ASCII', 'ignore').decode('ASCII')
-    return texto
-
+excel_file_input = pasta_form1/"planilhas_consumo/form1.xlsx" 
+planilhas_auxiliares = {
+    "belem": pasta_form1/"planilhas_consumo/belem.xlsx",
+    "expansao": pasta_form1/"planilhas_consumo/expansao.xlsx",
+    "grs": pasta_form1/"planilhas_consumo/GRS.xlsx"
+}
 
 wb_input = load_workbook(excel_file_input)
 ws_input = wb_input.active
@@ -132,6 +90,14 @@ for nome, caminho in planilhas_auxiliares.items():
             row_data[5] = novas_datas  #update data
             row_data[4] = novo_status  #update status
 
+        else: 
+            if row_data[4] == "Sem Técnico":
+                pass
+
+            elif row_data[4] == None:
+                 row_data[4] = "Atrasado"
+                
+
       
                 ###ESTILIZAÇÃO
 
@@ -174,6 +140,7 @@ for nome, caminho in planilhas_auxiliares.items():
         col_letter = col[0].column_letter
         novo_ws.column_dimensions[col_letter].width = max_length + 5
 
-    novo_caminho = f"/home/josimar/Documentos/planilhas/form1/{nome}_atualizado_form1.xlsx"
+
+    novo_caminho = pasta_form1/f"{nome}_atualizado_form1.xlsx"
     novo_wb.save(novo_caminho)
     print(f"{novo_caminho} gerada com sucesso")
