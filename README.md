@@ -30,7 +30,7 @@ Este repositório contém uma coleção de formulários e scripts associados à 
 
 ### Form 4:
 - **Objetivo:** Verificar os envios com base no município/UVR mensalmente, com abas no formato MM.AA.
-- **Regra de Verificação:** O script coleta os dados extraídos do dataset e realiza uma verificação mensal por município e UVR. O Formulário 4 possui abas divididas por mês no formato MM.AA (por exemplo, 01.25 para janeiro de 2025). O script atualiza as planilhas auxiliares mensalmente, conforme as datas de envio e os municípios/UVRs.
+- **Regra de Verificação:** O script coleta os dados extraídos do dataset e realiza uma verificação mensal por município e UVR. O Formulário 4 possui abas divididas por mês no formato MM.AA (por exemplo, 01.25 para janeiro de 2025). O script atualiza as abas, conforme as datas de envio e os municípios/UVRs.
 
 ### Processo Geral de Atualização:
 1. **Entrada de Dados:** O script recebe uma extração do dataset e três planilhas auxiliares (GRS, Expansão e Belém).
