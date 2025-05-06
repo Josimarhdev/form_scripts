@@ -10,6 +10,9 @@ enviado_fill = PatternFill(start_color="006400", end_color="006400", fill_type="
 enviado_font = Font(color="FFFFFF", name='Arial', size=11)
 semtecnico_fill = PatternFill(start_color="808080", end_color="808080", fill_type="solid")
 atrasado_fill = PatternFill(start_color="FF6400", end_color="FF6400", fill_type="solid")
+duplicado_fill = PatternFill(start_color="A020F0", end_color="A020F0", fill_type="solid")
+outras_fill = PatternFill(start_color="A020F0", end_color="A020F0", fill_type="solid")
+atrasado2_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
 
 validado_nao_fill = PatternFill(start_color="FF6666", end_color="FF6666", fill_type="solid")
 validado_sim_fill = PatternFill(start_color="66FF66", end_color="66FF66", fill_type="solid")
@@ -56,5 +59,28 @@ def normalizar_uvr(uvr_nro):
         return str(int(uvr_nro))
     except ValueError:
         return uvr_nro
+
+
+def aplicar_estilo_status(cell, status):
+
+    if status == "Enviado": 
+        cell.fill = enviado_fill
+        cell.font = enviado_font
+    elif status == "UVR Sem Técnico" or status == "Sem Técnico":
+        cell.fill = semtecnico_fill
+        cell.font = enviado_font
+    elif status == "Atrasado":
+        cell.fill = atrasado_fill
+        cell.font = enviado_font
+    elif status == "Envio Duplicado":
+        cell.fill = duplicado_fill
+        cell.font = enviado_font
+    elif status == "Outras Ocorrências":
+        cell.fill = outras_fill
+        cell.font = enviado_font
+    elif status == "Atrasado >= 2":
+        cell.fill = atrasado2_fill
+        cell.font = enviado_font
+
 
 

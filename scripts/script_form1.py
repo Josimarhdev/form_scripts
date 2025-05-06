@@ -7,7 +7,7 @@ from utils import (  # Estilos e funções auxiliares
     cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
     semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill,
     cores_regionais, bordas, alinhamento,
-    corrigir_acentuacao, normalizar_texto
+    corrigir_acentuacao, normalizar_texto, aplicar_estilo_status
 )
 
 # Define o caminho do script atual
@@ -132,15 +132,7 @@ for nome, caminho in planilhas_auxiliares.items():
     for row_idx in range(2, novo_ws.max_row + 1):
         status_cell = novo_ws.cell(row=row_idx, column=5)
         status = status_cell.value
-        if status == "Enviado" or status == "Envio Duplicado":
-            status_cell.fill = enviado_fill
-            status_cell.font = enviado_font
-        elif status == "Sem Técnico":
-            status_cell.fill = semtecnico_fill
-            status_cell.font = enviado_font
-        elif status == "Atrasado":
-            status_cell.fill = atrasado_fill
-            status_cell.font = enviado_font
+        aplicar_estilo_status(status_cell, status_cell.value)
 
     # Ajusta a largura das colunas com base no conteúdo
     for col in novo_ws.columns:
