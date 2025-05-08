@@ -162,7 +162,7 @@ for nome, caminho in planilhas_auxiliares.items():
                             elif diff >= 2:
                                 row_data[4] = "Atrasado >= 2"
 
-                # Escreve linha na nova planilha
+                # Estiliza as linhas
                 for col_idx, value in enumerate(row_data, start=1):
                     cell = ws_final.cell(row=row_idx, column=col_idx, value=value)
                     cell.border = bordas
