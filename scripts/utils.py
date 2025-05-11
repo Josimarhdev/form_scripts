@@ -84,3 +84,5 @@ def aplicar_estilo_status(cell, status):
 
 
 
+
+
