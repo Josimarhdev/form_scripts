@@ -1,7 +1,7 @@
 from openpyxl import load_workbook, Workbook  # Para trabalhar com arquivos Excel
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment  # Para aplicar estilos nas células
 from datetime import datetime  # Para manipular datas
-import unicodedata
+import pandas as pd
 from pathlib import Path  # Para manipulação de caminhos de arquivos
 from utils import (  # Estilos e funções auxiliares
     cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
@@ -16,7 +16,7 @@ pasta_scripts = caminho_script.parent
 pasta_form1 = pasta_scripts.parent / "form1"
 
 # Caminho do arquivo do banco e arquivos auxiliares (originais do drive)
-excel_file_input = pasta_form1 / "planilhas_consumo/form1.xlsx"  
+csv_file_input = pasta_form1 / "planilhas_consumo/form1.csv"  
 planilhas_auxiliares = {
     "belem": pasta_form1 / "planilhas_consumo/belem.xlsx",    
     "expansao": pasta_form1 / "planilhas_consumo/expansao.xlsx", 
@@ -24,20 +24,20 @@ planilhas_auxiliares = {
 }
 
 # Carrega a planilha principal
-wb_input = load_workbook(excel_file_input)
-ws_input = wb_input.active
+df_input = pd.read_csv(csv_file_input, dtype=str)
+
 
 # Dicionário para armazenar o status de envio por município
 dados_atualizados = {}
 
-# Percorre as linhas da planilha principal (a partir da segunda)
-for row in ws_input.iter_rows(min_row=2, values_only=True):
-    municipio = row[1]
-    data_envio = row[2]
+for _, row in df_input.iterrows():
+    municipio = row['municipio']
+    data_envio = row['data_envio']
+
 
     # Normaliza o nome do município
     if isinstance(municipio, str):
-        municipio_normalizado = normalizar_texto(corrigir_acentuacao(municipio))
+        municipio_normalizado = normalizar_texto(municipio)
     else:
         continue
 
@@ -46,7 +46,7 @@ for row in ws_input.iter_rows(min_row=2, values_only=True):
         data_envio_formatada = data_envio.strftime("%d/%m/%Y")
     else:
         try:
-            data_envio_formatada = datetime.strptime(data_envio, "%m/%d/%Y %I:%M:%S %p").strftime("%d/%m/%Y")
+            data_envio_formatada = datetime.strptime(data_envio, "%Y-%m-%d %H:%M:%S.%f").strftime("%d/%m/%Y")
         except (ValueError, TypeError):
             data_envio_formatada = ""
 
@@ -89,7 +89,7 @@ for nome, caminho in planilhas_auxiliares.items():
 
         # Normaliza o nome do município
         if isinstance(municipio_original, str):
-            municipio_normalizado = normalizar_texto(corrigir_acentuacao(municipio_original))
+            municipio_normalizado = normalizar_texto(municipio_original)
             print(municipio_normalizado)
         else:
             municipio_normalizado = ""

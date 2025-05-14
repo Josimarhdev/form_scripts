@@ -1,7 +1,7 @@
 from openpyxl import load_workbook, Workbook  # Para trabalhar com arquivos excel
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment  # Para aplicas estilos nas cédulas
 from datetime import datetime  # Para manipular datas
-import unicodedata
+import pandas as pd
 from pathlib import Path  # Para manipulação de caminhos de arquivos
 from utils import (  #Estilos e funções auxiliares
     cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
@@ -17,25 +17,24 @@ pasta_scripts = caminho_script.parent
 pasta_form2 = pasta_scripts.parent / "form2"
 
 # Caminho do arquivo do banco e arquivos auxiliares (originais do drive)
-excel_file_input = pasta_form2 / "planilhas_consumo/form2.xlsx"
+csv_file_input = pasta_form2 / "planilhas_consumo/form2.csv"  
 planilhas_auxiliares = {
     "belem": pasta_form2 / "planilhas_consumo/belem.xlsx",
     "expansao": pasta_form2 / "planilhas_consumo/expansao.xlsx",
     "grs": pasta_form2 / "planilhas_consumo/GRS.xlsx"
 }
 
-# Carrega a planilha principal 
-wb_input = load_workbook(excel_file_input)
-ws_input = wb_input.active
+
+# Carrega a planilha principal
+df_input = pd.read_csv(csv_file_input, dtype=str)
 
 # Dicionário para armazenar o status de envio por município
 dados_atualizados = {}
 
-# Percorre as linhas da planilha principal (A partir da segunda)
-for row in ws_input.iter_rows(min_row=2, values_only=True):
-    municipio = row[1]
-    uvr_nro = row[3]
-    data_envio = row[4]
+for _, row in df_input.iterrows():
+    municipio = row['municipio']
+    uvr_nro = row['uvr_nro']
+    data_envio = row['data_envio']
 
     # Normaliza o nome do município
     if isinstance(municipio, str):
@@ -48,7 +47,7 @@ for row in ws_input.iter_rows(min_row=2, values_only=True):
         data_envio_formatada = data_envio.strftime("%d/%m/%Y")
     else:
         try:
-            data_envio_formatada = datetime.strptime(data_envio, "%m/%d/%Y %I:%M:%S %p").strftime("%d/%m/%Y")
+            data_envio_formatada = datetime.strptime(data_envio, "%Y-%m-%d %H:%M:%S.%f").strftime("%d/%m/%Y")
         except (ValueError, TypeError):
             data_envio_formatada = ""
 
