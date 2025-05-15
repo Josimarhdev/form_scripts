@@ -41,13 +41,6 @@ bordas = Border(
 
 alinhamento = Alignment(horizontal="center", vertical="center")
 
-# Funções reutilizáveis
-def corrigir_acentuacao(texto):
-    try:
-        return texto.encode('latin1').decode('utf-8')
-    except (UnicodeDecodeError, AttributeError):
-        return texto
-
 def normalizar_texto(texto):
     if isinstance(texto, str):
         texto = texto.strip().lower()
@@ -72,7 +65,7 @@ def aplicar_estilo_status(cell, status):
     elif status == "Atrasado":
         cell.fill = atrasado_fill
         cell.font = enviado_font
-    elif status == "Envio Duplicado":
+    elif status == "Duplicado":
         cell.fill = duplicado_fill
         cell.font = enviado_font
     elif status == "Outras Ocorrências":

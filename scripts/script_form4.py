@@ -3,12 +3,13 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from datetime import datetime
 from pathlib import Path
+import pandas as pd
 from datetime import timedelta
 from utils import (
     cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
     semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill, duplicado_fill, outras_fill, atrasado2_fill,
     cores_regionais, bordas, alinhamento,
-    corrigir_acentuacao, normalizar_texto, normalizar_uvr, aplicar_estilo_status
+    normalizar_texto, normalizar_uvr, aplicar_estilo_status
 )
 
 # Define os caminhos dos arquivos envolvidos
@@ -17,16 +18,15 @@ pasta_scripts = caminho_script.parent
 pasta_form4 = pasta_scripts.parent / "form4"
 
 # Caminho do arquivo principal e das planilhas auxiliares
-excel_file_input = pasta_form4 / "planilhas_consumo/form4.xlsx"
+csv_file_input = pasta_form4 / "planilhas_consumo/form4.csv"
 planilhas_auxiliares = {
     "belem": pasta_form4 / "planilhas_consumo/belem.xlsx",
     "expansao": pasta_form4 / "planilhas_consumo/expansao.xlsx",
     "grs": pasta_form4 / "planilhas_consumo/GRS.xlsx"
 }
 
-# Carrega a planilha principal (form4.xlsx)
-wb_input = load_workbook(excel_file_input)
-ws_input = wb_input.active
+# Carrega a planilha principal
+df_input = pd.read_csv(csv_file_input, dtype=str)
 
 # Dicionários para armazenar os dados extraídos
 dados_atualizados = {}
@@ -39,7 +39,7 @@ def converter_data_para_mes_ano(data_referencia):
         return data_referencia.strftime("%m.%y")
     else:
         try:
-            return datetime.strptime(data_referencia, "%d/%m/%Y").strftime("%m.%y")
+            return datetime.strptime(data_referencia, "%Y-%m-%d").strftime("%m.%y")
         except (ValueError, TypeError):
             return ""
 
@@ -47,16 +47,17 @@ def converter_data_para_mes_ano(data_referencia):
 def limpar_nome_aba(nome):
     return nome.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("[", "").replace("]", "")
 
-# Percorre as linhas da planilha principal e extrai dados
-for row in ws_input.iter_rows(min_row=2, values_only=True):
-    municipio = row[3]
-    uvr_nro = row[1]
-    data_referencia = row[5]
-    data_envio = row[4]
-    tc_uvr = row[14]
+
+for _, row in df_input.iterrows():
+    municipio = row['gm_nome']
+    uvr_nro = row['guvr_numero']
+    data_envio = row['data_de_envio']
+    tc_uvr = row['nome_tc_uvr']  
+    data_referencia = row['data_de_referencia']
+
 
     if isinstance(municipio, str):
-        municipio_uvr_normalizado = f"{normalizar_texto(corrigir_acentuacao(municipio))}_{uvr_nro}"
+        municipio_uvr_normalizado = f"{normalizar_texto(municipio)}_{uvr_nro}"
     else:
         continue
 
@@ -67,7 +68,7 @@ for row in ws_input.iter_rows(min_row=2, values_only=True):
         data_envio_formatada = data_envio.strftime("%d/%m/%Y")
     else:
         try:
-            data_envio_formatada = datetime.strptime(data_envio, "%m/%d/%Y %I:%M:%S %p").strftime("%d/%m/%Y")
+            data_envio_formatada = datetime.strptime(data_envio, "%Y-%m-%d").strftime("%d/%m/%Y")
         except (ValueError, TypeError):
             data_envio_formatada = ""
 
@@ -75,7 +76,7 @@ for row in ws_input.iter_rows(min_row=2, values_only=True):
     chave = (municipio_uvr_normalizado, mes_ano)
     if chave in dados_atualizados:
         dados_atualizados[chave]["datas_envio"].append(data_envio_formatada)
-        dados_atualizados[chave]["status"] = "Envio Duplicado"
+        dados_atualizados[chave]["status"] = "Duplicado"
     else:
         dados_atualizados[chave] = {
             "datas_envio": [data_envio_formatada],
@@ -135,7 +136,7 @@ for nome, caminho in planilhas_auxiliares.items():
                 if not isinstance(municipio_original, str) or not municipio_original.strip():
                     continue
 
-                municipio_uvr_normalizado = f"{normalizar_texto(corrigir_acentuacao(municipio_original))}_{normalizar_uvr(uvr_nro_original)}"
+                municipio_uvr_normalizado = f"{normalizar_texto(municipio_original)}_{normalizar_uvr(uvr_nro_original)}"
                 chave_busca = (municipio_uvr_normalizado, mes_ano_aux)
                 div_por_municipio[municipio_uvr_normalizado] = nome
                 regionais_por_municipio[municipio_uvr_normalizado] = regional
@@ -212,9 +213,9 @@ for nome, wb in wb_final.items():
             if div_por_municipio.get(municipio_uvr) == nome:
                 nova_linha = [
                     regionais_por_municipio.get(municipio_uvr, ""),
-                    corrigir_acentuacao(info["municipio_original"]),
+                    info["municipio_original"],
                     info["uvr_nro"],
-                    corrigir_acentuacao(info["tc_uvr"]),
+                    info["tc_uvr"],
                     info["status"],
                     ", ".join(info["datas_envio"]),
                     mes_ano

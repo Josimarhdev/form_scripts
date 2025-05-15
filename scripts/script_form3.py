@@ -1,13 +1,13 @@
 from openpyxl import load_workbook, Workbook  # Para carregar e criar arquivos Excel
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment  # Para aplicar estilos nas células
 from datetime import datetime  # Para lidar com datas
-import unicodedata  # Para normalização de texto (acentos etc.)
+import pandas as pd
 from pathlib import Path  # Para manipulação de caminhos de arquivos
 from utils import (  # Importa funções utilitárias e estilos personalizados
     cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
     semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill,
     cores_regionais, bordas, alinhamento,
-    corrigir_acentuacao, normalizar_texto, normalizar_uvr, aplicar_estilo_status
+    normalizar_texto, normalizar_uvr, aplicar_estilo_status
 )
 
 # Caminho da pasta onde o script está localizado
@@ -16,7 +16,7 @@ pasta_scripts = caminho_script.parent
 pasta_form3 = pasta_scripts.parent / "form3"
 
 # Caminho da planilha principal de entrada
-excel_file_input = pasta_form3 / "planilhas_consumo/form3.xlsx" 
+csv_file_input = pasta_form3 / "planilhas_consumo/form3.csv" 
 
 # Caminhos das planilhas auxiliares
 planilhas_auxiliares = {
@@ -25,22 +25,20 @@ planilhas_auxiliares = {
     "grs": pasta_form3 / "planilhas_consumo/GRS.xlsx"
 }
 
-# Carrega o arquivo principal
-wb_input = load_workbook(excel_file_input)
-ws_input = wb_input.active  # Seleciona a aba ativa
+# Carrega a planilha principal
+df_input = pd.read_csv(csv_file_input, dtype=str)
 
 dados_atualizados = {}  # Dicionário para armazenar informações atualizadas
 
-# Percorre as linhas da planilha principal (a partir da segunda)
-for row in ws_input.iter_rows(min_row=2, values_only=True):
-    municipio = row[5]
-    uvr_nro = row[4]  
-    data_envio = row[6]
-    cnpj = row[2]  
+for _, row in df_input.iterrows():
+    municipio = row['municipio']
+    uvr_nro = row['uvr_numero']
+    data_envio = row['data_envio']
+    cnpj = row['cnpj']  
 
     # Gera a chave normalizada (municipio + UVR)
     if isinstance(municipio, str):
-        municipio_uvr_normalizado = f"{normalizar_texto(corrigir_acentuacao(municipio))}_{normalizar_uvr(uvr_nro)}"
+        municipio_uvr_normalizado = f"{normalizar_texto(municipio)}_{normalizar_uvr(uvr_nro)}"
     else:
         continue  
 
@@ -49,7 +47,7 @@ for row in ws_input.iter_rows(min_row=2, values_only=True):
         data_envio_formatada = data_envio.strftime("%d/%m/%Y")
     else:
         try:
-            data_envio_formatada = datetime.strptime(data_envio, "%m/%d/%Y %I:%M:%S %p").strftime("%d/%m/%Y")
+            data_envio_formatada = datetime.strptime(data_envio, "%Y-%m-%d %H:%M:%S.%f").strftime("%d/%m/%Y")
         except (ValueError, TypeError):
             data_envio_formatada = ""
 
@@ -62,7 +60,7 @@ for row in ws_input.iter_rows(min_row=2, values_only=True):
         dados_atualizados[municipio_uvr_normalizado]["cnpjs"][cnpj] = [data_envio_formatada]
     else:
         dados_atualizados[municipio_uvr_normalizado]["cnpjs"][cnpj].append(data_envio_formatada)
-        dados_atualizados[municipio_uvr_normalizado]["status"] = "Envio Duplicado"  # Marca como duplicado
+        dados_atualizados[municipio_uvr_normalizado]["status"] = "Duplicado"  # Marca como duplicado
 
 # Processa cada uma das planilhas auxiliares (Belém, GRS e Expansão)
 for nome, caminho in planilhas_auxiliares.items():
@@ -97,7 +95,7 @@ for nome, caminho in planilhas_auxiliares.items():
 
         # Normaliza a chave para buscar nos dados atualizados
         if isinstance(municipio_original, str):
-            municipio_uvr_normalizado = f"{normalizar_texto(corrigir_acentuacao(municipio_original))}_{normalizar_uvr(uvr_nro_original)}"
+            municipio_uvr_normalizado = f"{normalizar_texto(municipio_original)}_{normalizar_uvr(uvr_nro_original)}"
             print(municipio_uvr_normalizado, ' aux')
         else:
             municipio_uvr_normalizado = ""

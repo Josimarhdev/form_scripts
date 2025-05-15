@@ -7,7 +7,7 @@ from utils import (  # Estilos e funções auxiliares
     cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
     semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill,
     cores_regionais, bordas, alinhamento,
-    corrigir_acentuacao, normalizar_texto, aplicar_estilo_status
+    normalizar_texto, aplicar_estilo_status
 )
 
 # Define o caminho do script atual
@@ -31,7 +31,7 @@ df_input = pd.read_csv(csv_file_input, dtype=str)
 dados_atualizados = {}
 
 for _, row in df_input.iterrows():
-    municipio = row['municipio']
+    municipio = row['municipio']  
     data_envio = row['data_envio']
 
 
@@ -53,7 +53,7 @@ for _, row in df_input.iterrows():
     # Atualiza ou insere os dados no dicionário
     if municipio_normalizado in dados_atualizados:
         dados_atualizados[municipio_normalizado]["datas"].append(data_envio_formatada)
-        dados_atualizados[municipio_normalizado]["status"] = "Envio Duplicado"
+        dados_atualizados[municipio_normalizado]["status"] = "Duplicado"
     else:
         dados_atualizados[municipio_normalizado] = {"datas": [data_envio_formatada], "status": "Enviado"}
 

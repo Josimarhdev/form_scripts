@@ -7,7 +7,7 @@ from utils import (  #Estilos e funções auxiliares
     cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
     semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill,
     cores_regionais, bordas, alinhamento,
-    corrigir_acentuacao, normalizar_texto, normalizar_uvr, aplicar_estilo_status
+    normalizar_texto, normalizar_uvr, aplicar_estilo_status
 )
 
 
@@ -38,7 +38,7 @@ for _, row in df_input.iterrows():
 
     # Normaliza o nome do município
     if isinstance(municipio, str):
-        municipio_uvr_normalizado = f"{normalizar_texto(corrigir_acentuacao(municipio))}_{uvr_nro}"
+        municipio_uvr_normalizado = f"{normalizar_texto(municipio)}_{uvr_nro}"
     else:
         continue  
 
@@ -54,7 +54,7 @@ for _, row in df_input.iterrows():
     # Verifica se já há entrada para o município/UVR e marca como duplicado se for o caso
     if municipio_uvr_normalizado in dados_atualizados:
         dados_atualizados[municipio_uvr_normalizado]["datas"].append(data_envio_formatada)
-        dados_atualizados[municipio_uvr_normalizado]["status"] = "Envio Duplicado"
+        dados_atualizados[municipio_uvr_normalizado]["status"] = "Duplicado"
         print('entrou if')
     else:
         dados_atualizados[municipio_uvr_normalizado] = {
@@ -97,7 +97,7 @@ for nome, caminho in planilhas_auxiliares.items():
 
         # Normaliza o nome do município e UVR, fazendo a concatenação para comparação posterior
         if isinstance(municipio_original, str):
-            municipio_uvr_normalizado = f"{normalizar_texto(corrigir_acentuacao(municipio_original))}_{normalizar_uvr(uvr_nro_original)}"
+            municipio_uvr_normalizado = f"{normalizar_texto(municipio_original)}_{normalizar_uvr(uvr_nro_original)}"
         else:
             municipio_uvr_normalizado = ""
 

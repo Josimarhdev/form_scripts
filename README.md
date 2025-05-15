@@ -66,7 +66,7 @@ pip install -r requirements.txt
 Em cada pasta de formulário (por exemplo, `form1/`, `form2/`, etc.), existe uma subpasta chamada `planilhas_consumo/`. Nela, insira os seguintes arquivos:
 
 - As planilhas originais atualizadas (Belém, Expansão e GRS), retiradas do drive.
-- A extração do banco de dados no formato `.xlsx` (por exemplo, `form1.xlsx`).
+- A extração do banco de dados no formato `.csv` (por exemplo, `form1.csv`).
 
 Exemplo da estrutura esperada em `form1/`:
 ```
@@ -74,8 +74,8 @@ form1/
 ├── planilhas_consumo/
 │   ├── belem.xlsx
 │   ├── expansao.xlsx
-│   ├── grs.xlsx
-│   └── form1.xlsx
+│   ├── GRS.xlsx
+│   └── form1.csv
 ```
 
 4. **Acesse o diretório dos scripts:**
