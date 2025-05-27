@@ -246,10 +246,83 @@ for nome, wb in wb_final.items():
         col_letter = col[0].column_letter
         aba_irregulares.column_dimensions[col_letter].width = max_length + 5
 
+df_input['data_de_referencia'] = pd.to_datetime(df_input['data_de_referencia'], errors='coerce')
+df_input['receita_vendas'] = pd.to_numeric(df_input['receita_vendas'], errors='coerce')
+df_input['mun_uvr'] = df_input['gm_nome'].apply(normalizar_texto) + "_" + df_input['guvr_numero']
+
+data_hoje = pd.Timestamp.today()
+inicio_mes_atual = pd.Timestamp(year=data_hoje.year, month=data_hoje.month, day=1)
+data_minima = inicio_mes_atual - pd.DateOffset(months=6)
+
+df_filtrado = df_input.dropna(subset=['data_de_referencia', 'receita_vendas'])
+df_filtrado = df_filtrado[df_filtrado['data_de_referencia'] >= data_minima]
+
+registros_outliers = []
+
+for mun_uvr, grupo in df_filtrado.groupby('mun_uvr'):
+    grupo = grupo.sort_values('data_de_referencia')
+    print(grupo)
+    media = grupo['receita_vendas'].mean()
+   
+
+    for _, atual in grupo.iterrows():
+        valor = atual['receita_vendas']
+        if media == 0:
+            continue  # evita divisão por zero
+
+        desvio_percentual = abs((valor - media) / media)
+
+        if valor == 0 or desvio_percentual > 0.80:
+            registros_outliers.append({
+                "Município": atual['gm_nome'],
+                "UVR": atual['guvr_numero'],
+                "Técnico UVR": atual['nome_tc_uvr'],
+                "Data de Referência": atual['data_de_referencia'].strftime("%m.%Y"),
+                "Receita de Vendas": valor,
+                "Média 6 meses": round(media, 2),
+                "Desvio (%)": f"{round(desvio_percentual * 100, 2)}%"
+            })
+
+for nome, wb in wb_final.items():
+    aba_outliers = wb.create_sheet("outliers")
+    colunas = [
+        "Município",
+        "UVR",
+        "Técnico UVR",
+        "Data de Referência",
+        "Receita de Vendas",
+        "Média 6 meses",
+        "Desvio (%)"
+    ]
+
+    for col_num, nome_col in enumerate(colunas, start=1):
+        cell = aba_outliers.cell(row=1, column=col_num, value=nome_col)
+        cell.fill = cabeçalho_fill
+        cell.font = cabeçalho_font
+        cell.border = bordas
+        cell.alignment = alinhamento
+
+    linha = 2
+    for registro in registros_outliers:
+        mun_uvr_chave = f"{normalizar_texto(registro['Município'])}_{registro['UVR']}"
+        if div_por_municipio.get(mun_uvr_chave) == nome:
+            for col_idx, chave in enumerate(colunas, start=1):
+                valor = registro[chave]
+                cell = aba_outliers.cell(row=linha, column=col_idx, value=valor)
+                cell.border = bordas
+                cell.alignment = alinhamento
+                cell.font = Font(name='Arial', size=11)
+            linha += 1
+
+    for col in aba_outliers.columns:
+        max_length = max(len(str(cell.value)) if cell.value else 0 for cell in col)
+        col_letter = col[0].column_letter
+        aba_outliers.column_dimensions[col_letter].width = max_length + 5
+
 
 
 # Salva os novos arquivos com nome atualizado
 for nome, wb in wb_final.items():
-    caminho_saida = pasta_form4 / f"{nome}_atualizado_form4.xlsx"
+    caminho_saida = pasta_form4 / f"V2_{nome}_atualizado_form4.xlsx"
     wb.save(caminho_saida)
     print(f"{caminho_saida} gerado com sucesso")
