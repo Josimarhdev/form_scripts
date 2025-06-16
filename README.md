@@ -1,6 +1,6 @@
 # Form Scripts
 
-Este repositório contém uma coleção de formulários e scripts associados à automação da atualização dos mesmos. Os formulários estão organizados em diretórios separados, cada um representando um formulário específico.
+Este repositório contém uma coleção de formulários e scripts associados à automação da atualização dos mesmos. Os arquivos estão separados em diferentes diretórios, tendo pastas respectivas para inputs, outputs e para os scripts em si.
 
 ## Estrutura do Repositório
 
