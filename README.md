@@ -4,11 +4,12 @@ Este repositório contém uma coleção de formulários e scripts associados à 
 
 ## Estrutura do Repositório
 
-- `form1/`: Contém as planilhas geradas pelo script e arquivos auxiliares (planilhas originais/dataset) do Formulário 1.
-- `form2/`: Contém as planilhas geradas pelo script e arquivos auxiliares do Formulário 2.
-- `form3/`: Contém as planilhas geradas pelo script e arquivos auxiliares do Formulário 3.
-- `form4/`: Contém as planilhas geradas pelo script e arquivos auxiliares do Formulário 4.
+
+- `form4/`: Contém as planilhas de saída da versão de testes do formulário 04 (form4v2).
+- `inputs/`: Contém os arquivos de entrada dos formulários 1, 2, 3 e 4.
+- `outputs/`: Contém os arquivos de saída dos formulários 1, 2, 3 e 4.
 - `scripts/`: Inclui os scripts utilizados para atualização dos formulários.
+
 
 ## Tecnologias Utilizadas
 
@@ -63,19 +64,31 @@ pip install -r requirements.txt
 
 3. **Insira os arquivos de entrada atualizados:**
 
-Em cada pasta de formulário (por exemplo, `form1/`, `form2/`, etc.), existe uma subpasta chamada `planilhas_consumo/`. Nela, insira os seguintes arquivos:
+Na pasta principal de `inputs/`, insira os seguintes arquivos e pastas. Esta pasta centralizará todas as fontes de dados necessárias para a execução.
 
-- As planilhas originais atualizadas (Belém, Expansão e GRS), retiradas do drive.
-- A extração do banco de dados no formato `.csv` (por exemplo, `form1.csv`).
+- As pastas com as planilhas de consumo originais:
+    - `0 - Belém`
+    - `0 - Expansão`
+    - `0 - GRS II`
+- Os arquivos de extração do banco de dados no formato `.csv`:
+    - `form1.csv`
+    - `form2.csv`
+    - `form3.csv`
+    - `form4.csv`
 
-Exemplo da estrutura esperada em `form1/`:
+A estrutura de pastas e arquivos esperada dentro de `inputs/` deve ser a seguinte:
 ```
-form1/
-├── planilhas_consumo/
-│   ├── belem.xlsx
-│   ├── expansao.xlsx
-│   ├── GRS.xlsx
-│   └── form1.csv
+inputs/
+├── 0 - Belém/
+│   └── ...
+├── 0 - Expansão/
+│   └── ... 
+├── 0 - GRS II/
+│   └── ... 
+├── form1.csv
+├── form2.csv
+├── form3.csv
+└── form4.csv
 ```
 
 4. **Acesse o diretório dos scripts:**
@@ -84,12 +97,12 @@ form1/
 cd form_scripts/scripts
 ```
 
-5. **Execute o script correspondente ao formulário desejado:**
+5. **Execute o script geral:**
 
-Exemplo para o Formulário 1:
+Exemplo:
 
 ```bash
-python script_form1.py
+python EXECUTAR_TODOS.py
 ```
 
-O script irá processar os dados e gerar novas planilhas atualizadas na respectiva pasta do formulário.
+O script irá processar os dados e gerar novas planilhas atualizadas na pasta de outputs.

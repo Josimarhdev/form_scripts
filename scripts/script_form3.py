@@ -1,11 +1,13 @@
 from openpyxl import load_workbook, Workbook  # Para carregar e criar arquivos Excel
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment  # Para aplicar estilos nas células
 from datetime import datetime  # Para lidar com datas
+from openpyxl.formatting.rule import CellIsRule
+from openpyxl.worksheet.datavalidation import DataValidation
 import pandas as pd
 from pathlib import Path  # Para manipulação de caminhos de arquivos
 from utils import (  # Importa funções utilitárias e estilos personalizados
     cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
-    semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill,
+    semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill, atrasado2_fill, outras_fill, duplicado_fill,
     cores_regionais, bordas, alinhamento,
     normalizar_texto, normalizar_uvr, aplicar_estilo_status
 )
@@ -13,17 +15,16 @@ from utils import (  # Importa funções utilitárias e estilos personalizados
 # Caminho da pasta onde o script está localizado
 caminho_script = Path(__file__).resolve()
 pasta_scripts = caminho_script.parent
-pasta_form3 = pasta_scripts.parent / "form3"
+pasta_inputs = pasta_scripts.parent / "inputs"
 
-# Caminho da planilha principal de entrada
-csv_file_input = pasta_form3 / "planilhas_consumo/form3.csv" 
-
-# Caminhos das planilhas auxiliares
+# Caminho do arquivo do banco e arquivos auxiliares (originais do drive)
+csv_file_input = pasta_inputs/"form3.csv"  
 planilhas_auxiliares = {
-    "belem": pasta_form3 / "planilhas_consumo/belem.xlsx",
-    "expansao": pasta_form3 / "planilhas_consumo/expansao.xlsx",
-    "grs": pasta_form3 / "planilhas_consumo/GRS.xlsx"
+    "belem": pasta_inputs / "0 - Belém" / "0 - Monitoramento Form 1, 2 e 3.xlsx",
+    "expansao": pasta_inputs / "0 - Expansão" / "0 - Monitoramento Form 1, 2 e 3.xlsx",
+    "grs": pasta_inputs / "0 - GRS II" / "0 - Monitoramento Form 1, 2 e 3.xlsx"
 }
+
 
 # Carrega a planilha principal
 df_input = pd.read_csv(csv_file_input, dtype=str)
@@ -73,10 +74,14 @@ for nome, caminho in planilhas_auxiliares.items():
 
     ws_aux = wb_aux["Form 3 - Empreendimento"]
 
-    # Cria uma nova planilha para os dados atualizados
-    novo_wb = Workbook()
-    novo_ws = novo_wb.active
-    novo_ws.title = nome
+    wb_destino = {"belem": belem_wb, "expansao": expansao_wb, "grs": grs_wb}[nome] # type: ignore
+    novo_ws = wb_destino.create_sheet("Form 3 - Empreendimento")  
+
+    dv_sim_nao = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=True) #dropdown com sim e nao
+    novo_ws.add_data_validation(dv_sim_nao) 
+
+    dv_status = DataValidation(type="list", formula1='"Enviado, Atrasado, Outras Ocorrências, Sem Técnico, Duplicado"', allow_blank=True) #dropdown com sim e nao
+    novo_ws.add_data_validation(dv_status)     
 
     # Copia o cabeçalho da planilha original e aplica estilos
     headers = [cell.value for cell in ws_aux[1]]
@@ -133,6 +138,15 @@ for nome, caminho in planilhas_auxiliares.items():
             cell.alignment = alinhamento
             cell.font = Font(name='Arial', size=11)
 
+            if col_idx == 7: 
+                dv_sim_nao.add(cell.coordinate) # Adiciona esta célula à regra de validação dv_sim_nao pro validado pelos regionais
+
+            if col_idx == 10: 
+                dv_sim_nao.add(cell.coordinate) # Adiciona esta célula à regra de validação dv_sim_nao pro validado pela equipe de TI  
+
+            if col_idx == 5:
+                dv_status.add(cell.coordinate) 
+
     # Aplica cores de preenchimento conforme o status
     for row_idx in range(2, novo_ws.max_row + 1):
         status_cell = novo_ws.cell(row=row_idx, column=5)
@@ -145,7 +159,38 @@ for nome, caminho in planilhas_auxiliares.items():
         col_letter = col[0].column_letter
         novo_ws.column_dimensions[col_letter].width = max_length + 5
 
+
+    if novo_ws.max_row >= 2: 
+
+        coluna_validado_regional = f"G2:G{novo_ws.max_row}" # Coluna G é a 7ª coluna
+        coluna_validado_ti = f"J2:J{novo_ws.max_row}" # Coluna G é a 10ª coluna
+        coluna_status = f"E2:E{novo_ws.max_row}" # Coluna E é a 5ª coluna
+
+        rule_sim = CellIsRule(operator='equal', formula=['"Sim"'], stopIfTrue=True, fill=validado_sim_fill)
+        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_sim) #Se for selecionado Sim, pinta de verde
+        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_sim) #Se for selecionado Sim, pinta de verde
+
+        rule_nao = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
+        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_nao) #Se for selecionado Não, pinta de vermelho
+        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_nao) #Se for selecionado Sim, pinta de verde
+
+        status_rules = {
+            "Enviado": {"fill": enviado_fill, "font": enviado_font},
+            "Atrasado": {"fill": atrasado_fill, "font": enviado_font},
+            "Outras Ocorrências": {"fill": outras_fill, "font": enviado_font},
+            "Sem Técnico": {"fill": semtecnico_fill, "font": enviado_font},
+            "Duplicado": {"fill": duplicado_fill, "font": enviado_font}
+        }
+
+        for status_text, styles in status_rules.items():
+            rule = CellIsRule(operator='equal',
+                            formula=[f'"{status_text}"'],
+                            stopIfTrue=True,
+                            fill=styles["fill"],
+                            font=styles["font"])
+            novo_ws.conditional_formatting.add(coluna_status, rule)   
+
     # Salva a nova planilha atualizada
-    novo_caminho = pasta_form3 / f"{nome}_atualizado_form3.xlsx"
-    novo_wb.save(novo_caminho)
-    print(f"{novo_caminho} gerada com sucesso")
+    #novo_caminho = pasta_scripts.parent / "form3" / f"{nome}_atualizado_form3.xlsx"
+    #novo_wb.save(novo_caminho)
+

@@ -15,14 +15,14 @@ from utils import (
 # Define os caminhos dos arquivos envolvidos
 caminho_script = Path(__file__).resolve()
 pasta_scripts = caminho_script.parent
-pasta_form4 = pasta_scripts.parent / "form4"
+pasta_inputs = pasta_scripts.parent / "inputs"
 
-# Caminho do arquivo principal e das planilhas auxiliares
-csv_file_input = pasta_form4 / "planilhas_consumo/form4.csv"
+# Caminho do arquivo do banco e arquivos auxiliares (originais do drive)
+csv_file_input = pasta_inputs/"form4.csv"  
 planilhas_auxiliares = {
-    "belem": pasta_form4 / "planilhas_consumo/belem.xlsx",
-    "expansao": pasta_form4 / "planilhas_consumo/expansao.xlsx",
-    "grs": pasta_form4 / "planilhas_consumo/GRS.xlsx"
+    "belem": pasta_inputs / "0 - Belém" / "0 - Monitoramento Form 4.xlsx",
+    "expansao": pasta_inputs / "0 - Expansão" / "0 - Monitoramento Form 4.xlsx",
+    "grs": pasta_inputs / "0 - GRS II" / "0 - Monitoramento Form 4.xlsx"
 }
 
 # Carrega a planilha principal
@@ -282,6 +282,7 @@ for mun_uvr, grupo in df_filtrado.groupby('mun_uvr'):
                 "Média 6 meses": round(media, 2),
                 "Desvio (%)": f"{round(desvio_percentual * 100, 2)}%"
             })
+            
 
 for nome, wb in wb_final.items():
     aba_outliers = wb.create_sheet("outliers")
@@ -323,6 +324,6 @@ for nome, wb in wb_final.items():
 
 # Salva os novos arquivos com nome atualizado
 for nome, wb in wb_final.items():
-    caminho_saida = pasta_form4 / f"V2_{nome}_atualizado_form4.xlsx"
-    wb.save(caminho_saida)
-    print(f"{caminho_saida} gerado com sucesso")
+    novo_caminho = pasta_scripts.parent / "form4" / f"V2_{nome}_atualizado_form4.xlsx"
+    wb.save(novo_caminho)
+    print(f"{novo_caminho} gerado com sucesso")

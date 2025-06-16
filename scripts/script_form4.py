@@ -2,6 +2,8 @@
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from datetime import datetime
+from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.formatting.rule import CellIsRule
 from pathlib import Path
 import pandas as pd
 from datetime import timedelta
@@ -15,14 +17,14 @@ from utils import (
 # Define os caminhos dos arquivos envolvidos
 caminho_script = Path(__file__).resolve()
 pasta_scripts = caminho_script.parent
-pasta_form4 = pasta_scripts.parent / "form4"
+pasta_inputs = pasta_scripts.parent / "inputs"
 
-# Caminho do arquivo principal e das planilhas auxiliares
-csv_file_input = pasta_form4 / "planilhas_consumo/form4.csv"
+# Caminho do arquivo do banco e arquivos auxiliares (originais do drive)
+csv_file_input = pasta_inputs/"form4.csv"  
 planilhas_auxiliares = {
-    "belem": pasta_form4 / "planilhas_consumo/belem.xlsx",
-    "expansao": pasta_form4 / "planilhas_consumo/expansao.xlsx",
-    "grs": pasta_form4 / "planilhas_consumo/GRS.xlsx"
+    "belem": pasta_inputs / "0 - Belém" / "0 - Monitoramento Form 4.xlsx",
+    "expansao": pasta_inputs / "0 - Expansão" / "0 - Monitoramento Form 4.xlsx",
+    "grs": pasta_inputs / "0 - GRS II" / "0 - Monitoramento Form 4.xlsx"
 }
 
 # Carrega a planilha principal
@@ -108,6 +110,12 @@ for nome, caminho in planilhas_auxiliares.items():
 
             ws_final = wb_final[nome][mes_ano_limpo]
 
+            dv_sim_nao = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=True)
+            ws_final.add_data_validation(dv_sim_nao)
+
+            dv_status = DataValidation(type="list", formula1='"Enviado, Atrasado, Atrasado >= 2, Outras Ocorrências, Sem Técnico, Duplicado"', allow_blank=True) #dropdown com sim e nao
+            ws_final.add_data_validation(dv_status)           
+
             # Copia cabeçalhos com formatação
             headers = [cell.value for cell in ws_aux[1]]
             for col_num, header in enumerate(headers, start=1):
@@ -169,6 +177,16 @@ for nome, caminho in planilhas_auxiliares.items():
                     cell.border = bordas
                     cell.alignment = alinhamento
                     cell.font = Font(name='Arial', size=11)
+                    
+                    if col_idx == 7:
+                        dv_sim_nao.add(cell.coordinate)
+
+                    if col_idx == 10:
+                        dv_sim_nao.add(cell.coordinate)
+
+                    if col_idx == 5:
+                        dv_status.add(cell.coordinate) 
+                    
 
                 # Aplica cor para célula de validação
                 if row_data[6] == "Não":
@@ -192,6 +210,35 @@ for nome, caminho in planilhas_auxiliares.items():
                 max_length = max(len(str(cell.value)) if cell.value else 0 for cell in col)
                 col_letter = col[0].column_letter
                 wb_final[nome][mes_ano_limpo].column_dimensions[col_letter].width = max_length + 5
+
+            coluna_validado_regional = f"G2:G{ws_final.max_row}" # Coluna G é a 7ª coluna
+            coluna_validado_ti = f"J2:J{ws_final.max_row}" # Coluna G é a 10ª coluna
+            coluna_status = f"E2:E{ws_final.max_row}" # Coluna E é a 5ª coluna
+
+            rule_sim = CellIsRule(operator='equal', formula=['"Sim"'], stopIfTrue=True, fill=validado_sim_fill)
+            ws_final.conditional_formatting.add(coluna_validado_regional, rule_sim) #Se for selecionado Sim, pinta de verde
+            ws_final.conditional_formatting.add(coluna_validado_ti, rule_sim) #Se for selecionado Sim, pinta de verde
+
+            rule_nao = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
+            ws_final.conditional_formatting.add(coluna_validado_regional, rule_nao) #Se for selecionado Não, pinta de vermelho
+            ws_final.conditional_formatting.add(coluna_validado_ti, rule_nao) #Se for selecionado Sim, pinta de verde
+
+            status_rules = {
+            "Enviado": {"fill": enviado_fill, "font": enviado_font},
+            "Atrasado": {"fill": atrasado_fill, "font": enviado_font},
+            "Atrasado >= 2": {"fill": atrasado2_fill, "font": enviado_font},
+            "Outras Ocorrências": {"fill": outras_fill, "font": enviado_font},
+            "Sem Técnico": {"fill": semtecnico_fill, "font": enviado_font},
+            "Duplicado": {"fill": duplicado_fill, "font": enviado_font}
+        }
+
+            for status_text, styles in status_rules.items():
+                rule = CellIsRule(operator='equal',
+                                formula=[f'"{status_text}"'],
+                                stopIfTrue=True,
+                                fill=styles["fill"],
+                                font=styles["font"])
+                ws_final.conditional_formatting.add(coluna_status, rule)   
 
 # Cria aba "irregulares" com registros que não se encaixam nas abas mensais
 for nome, wb in wb_final.items():
@@ -250,6 +297,6 @@ for nome, wb in wb_final.items():
 
 # Salva os novos arquivos com nome atualizado
 for nome, wb in wb_final.items():
-    caminho_saida = pasta_form4 / f"{nome}_atualizado_form4.xlsx"
-    wb.save(caminho_saida)
-    print(f"{caminho_saida} gerado com sucesso")
+    novo_caminho = pasta_scripts.parent / "outputs" / f"{nome}_atualizado_form4.xlsx"
+    wb.save(novo_caminho)
+    print(f"{novo_caminho} gerado com sucesso")

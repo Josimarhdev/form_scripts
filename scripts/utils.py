@@ -23,13 +23,14 @@ cores_regionais = {
     "Valquiria": "B2FFFF",
     "Luana": "FFCCFF",
     "Larissa": "F1E0C6",
-    "Paranavai": "9B59B6",
+    "Paranavaí": "9B59B6",
     "Ana Paula": "993399",
     "Londrina": "A9C5E6",
     "Francisco Beltrão": "B2FFFF",
     "Maringá": "FFCCFF",
     "Curitiba": "FFFF99",
-    "Guarapuava": "F1E0C6"
+    "Guarapuava": "F1E0C6",
+    "Laranjeiras do Sul" : "FFD3AC"
 }
 
 bordas = Border(
