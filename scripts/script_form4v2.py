@@ -209,7 +209,7 @@ for nome, wb in wb_final.items():
     linha_atual = 2
     for chave, info in dados_atualizados.items():
         municipio_uvr, mes_ano = chave
-        if mes_ano not in wb.sheetnames:
+        if mes_ano not in wb.sheetnames: #verifica se aquele envio tem a data de referencia valida
             if div_por_municipio.get(municipio_uvr) == nome:
                 nova_linha = [
                     regionais_por_municipio.get(municipio_uvr, ""),
