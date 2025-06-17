@@ -74,6 +74,8 @@ for nome, caminho in planilhas_auxiliares.items():
 
     ws_aux = wb_aux["Form 3 - Empreendimento"]
 
+
+    # Usa o workbook que foi criado no EXECUTAR_TODOS
     wb_destino = {"belem": belem_wb, "expansao": expansao_wb, "grs": grs_wb}[nome] # type: ignore
     novo_ws = wb_destino.create_sheet("Form 3 - Empreendimento")  
 
