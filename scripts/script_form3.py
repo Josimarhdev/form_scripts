@@ -82,7 +82,7 @@ for nome, caminho in planilhas_auxiliares.items():
     dv_sim_nao = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=True) #dropdown com sim e nao
     novo_ws.add_data_validation(dv_sim_nao) 
 
-    dv_status = DataValidation(type="list", formula1='"Enviado, Atrasado, Outras Ocorrências, Sem Técnico, Duplicado"', allow_blank=True) #dropdown com sim e nao
+    dv_status = DataValidation(type="list", formula1='"Enviado, Atrasado, Outras Ocorrências, Sem Técnico, Duplicado"', allow_blank=True) #dropdown de status
     novo_ws.add_data_validation(dv_status)     
 
     # Copia o cabeçalho da planilha original e aplica estilos

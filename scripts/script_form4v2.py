@@ -250,7 +250,7 @@ df_input['data_de_referencia'] = pd.to_datetime(df_input['data_de_referencia'], 
 df_input['receita_vendas'] = pd.to_numeric(df_input['receita_vendas'], errors='coerce')
 df_input['mun_uvr'] = df_input['gm_nome'].apply(normalizar_texto) + "_" + df_input['guvr_numero']
 
-data_hoje = pd.Timestamp.today()
+data_hoje = pd.Timestamp.today() #coleta a data atual pra poder calcular o desvio dos ultimos 6 meses
 inicio_mes_atual = pd.Timestamp(year=data_hoje.year, month=data_hoje.month, day=1)
 data_minima = inicio_mes_atual - pd.DateOffset(months=6)
 
@@ -270,9 +270,9 @@ for mun_uvr, grupo in df_filtrado.groupby('mun_uvr'):
         if media == 0:
             continue  # evita divisão por zero
 
-        desvio_percentual = abs((valor - media) / media)
+        desvio_percentual = abs((valor - media) / media) #calcula o desvio
 
-        if valor == 0 or desvio_percentual > 0.80:
+        if valor == 0 or desvio_percentual > 0.80: #se o desvio percentual for maior que 80%
             registros_outliers.append({
                 "Município": atual['gm_nome'],
                 "UVR": atual['guvr_numero'],
