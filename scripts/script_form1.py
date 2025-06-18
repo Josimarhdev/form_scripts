@@ -90,6 +90,8 @@ for nome, caminho in planilhas_auxiliares.items():
         cell.border = bordas
         cell.alignment = alinhamento  
 
+    novo_ws.auto_filter.ref = f"A1:G1"
+
     # Processa as linhas da planilha auxiliar
     for row_idx, row in enumerate(ws_aux.iter_rows(min_row=2, values_only=True), start=2):
         municipio_original = row[1]
