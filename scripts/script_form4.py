@@ -98,6 +98,38 @@ for nome in wb_final:
 for nome, caminho in planilhas_auxiliares.items():
     wb_aux = load_workbook(caminho)
 
+    abas_para_copiar_completamente = ["Resumo", "Monitoramento", "Regionais"]
+
+    for nome_aba in abas_para_copiar_completamente:
+        if nome_aba in wb_aux.sheetnames:
+            print(f"Copiando aba '{nome_aba}' para o arquivo de '{nome}'...")
+            ws_origem = wb_aux[nome_aba]
+            ws_destino = wb_final[nome].create_sheet(nome_aba)
+
+            # Copia os dados e estilos célula por célula
+            for row in ws_origem.iter_rows():
+                for cell in row:
+                    new_cell = ws_destino.cell(row=cell.row, column=cell.column, value=cell.value)
+                    if cell.has_style:
+                        new_cell.font = Font(name=cell.font.name, size=cell.font.size, bold=cell.font.bold, italic=cell.font.italic, color=cell.font.color)
+                        new_cell.border = Border(left=cell.border.left, right=cell.border.right, top=cell.border.top, bottom=cell.border.bottom)
+                        new_cell.fill = PatternFill(fill_type=cell.fill.fill_type, start_color=cell.fill.start_color, end_color=cell.fill.end_color)
+                        new_cell.alignment = Alignment(horizontal=cell.alignment.horizontal, vertical=cell.alignment.vertical, wrap_text=cell.alignment.wrap_text)
+                        new_cell.number_format = cell.number_format
+
+            # Copia as dimensões das colunas e linhas
+            for col_letter, dim in ws_origem.column_dimensions.items():
+                ws_destino.column_dimensions[col_letter].width = dim.width
+            for row_index, dim in ws_origem.row_dimensions.items():
+                ws_destino.row_dimensions[row_index].height = dim.height
+
+            # Copia as células mescladas
+            for merged_cell_range in ws_origem.merged_cells.ranges:
+                ws_destino.merge_cells(str(merged_cell_range))
+            
+            for dv in ws_origem.data_validations.dataValidation:
+                ws_destino.add_data_validation(dv)
+
     for aba in wb_aux.sheetnames:
         # Só processa abas no formato MM.AA
         if aba.count('.') == 1 and all(x.isdigit() for x in aba.split('.')):
@@ -226,10 +258,10 @@ for nome, caminho in planilhas_auxiliares.items():
 
             rule_nao = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
             ws_final.conditional_formatting.add(coluna_validado_regional, rule_nao) #Se for selecionado Não, pinta de vermelho
-            ws_final.conditional_formatting.add(coluna_validado_ti, rule_nao) 
+            ws_final.conditional_formatting.add(coluna_validado_ti, rule_nao) #Se for selecionado Sim, pinta de verde
 
-            rule_analise = CellIsRule(operator='equal', formula=['"Em Análise"'], stopIfTrue=True, fill=analise_fill) 
-            ws_final.conditional_formatting.add(coluna_validado_ti, rule_analise)   #Se for selecionado Em Análise, pinta de laranja    
+            rule_analise = CellIsRule(operator='equal', formula=['"Em Análise"'], stopIfTrue=True, fill=analise_fill)  
+            ws_final.conditional_formatting.add(coluna_validado_ti, rule_analise)    
 
             status_rules = {
             "Enviado": {"fill": enviado_fill, "font": enviado_font},
