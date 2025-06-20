@@ -13,6 +13,7 @@ atrasado_fill = PatternFill(start_color="FF6400", end_color="FF6400", fill_type=
 duplicado_fill = PatternFill(start_color="A020F0", end_color="A020F0", fill_type="solid")
 outras_fill = PatternFill(start_color="A020F0", end_color="A020F0", fill_type="solid")
 atrasado2_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+analise_fill = PatternFill(start_color="FFA500", end_color= "FFA500", fill_type="solid")
 
 validado_nao_fill = PatternFill(start_color="FF6666", end_color="FF6666", fill_type="solid")
 validado_sim_fill = PatternFill(start_color="66FF66", end_color="66FF66", fill_type="solid")

@@ -6,7 +6,7 @@ import pandas as pd
 from openpyxl.worksheet.datavalidation import DataValidation
 from pathlib import Path  # Para manipulação de caminhos de arquivos
 from utils import (  # Estilos e funções auxiliares
-    cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
+    cabeçalho_fill, cabeçalho_font, enviado_fill, analise_fill, enviado_font,
     semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill, atrasado2_fill, outras_fill, duplicado_fill,
     cores_regionais, bordas, alinhamento,
     normalizar_texto, aplicar_estilo_status
@@ -78,6 +78,9 @@ for nome, caminho in planilhas_auxiliares.items():
     dv_sim_nao = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=True) #dropdown com sim e nao
     novo_ws.add_data_validation(dv_sim_nao)
 
+    dv_sim_nao_ti = DataValidation(type="list", formula1='"Sim,Não, Em Análise"', allow_blank=True) 
+    novo_ws.add_data_validation(dv_sim_nao_ti)
+
     dv_status = DataValidation(type="list", formula1='"Enviado, Atrasado, Outras Ocorrências, Sem Técnico, Duplicado"', allow_blank=True) #dropdown de status
     novo_ws.add_data_validation(dv_status)
 
@@ -145,7 +148,7 @@ for nome, caminho in planilhas_auxiliares.items():
                 dv_sim_nao.add(cell.coordinate) # Adiciona esta célula à regra de validação dv_sim_nao pro validado pelos regionais
 
             if col_idx == 10: 
-                dv_sim_nao.add(cell.coordinate) # Adiciona esta célula à regra de validação dv_sim_nao pro validado pela equipe de TI 
+                dv_sim_nao_ti.add(cell.coordinate) # Adiciona esta célula à regra de validação dv_sim_nao pro validado pela equipe de TI 
 
             if col_idx == 5:
                 dv_status.add(cell.coordinate)         
@@ -181,6 +184,9 @@ for nome, caminho in planilhas_auxiliares.items():
         rule_nao = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
         novo_ws.conditional_formatting.add(coluna_validado_regional, rule_nao) #Se for selecionado Não, pinta de vermelho
         novo_ws.conditional_formatting.add(coluna_validado_ti, rule_nao) #Se for selecionado Sim, pinta de verde
+
+        rule_analise = CellIsRule(operator='equal', formula=['"Em Análise"'], stopIfTrue=True, fill=analise_fill)
+        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_analise) #Se for selecionado Sim, pinta de verde
 
 
         status_rules = {

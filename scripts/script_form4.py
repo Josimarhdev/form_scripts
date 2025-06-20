@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 from datetime import timedelta
 from utils import (
-    cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
+    cabeçalho_fill, cabeçalho_font, enviado_fill, analise_fill, enviado_font,
     semtecnico_fill, atrasado_fill, validado_nao_fill, validado_sim_fill, duplicado_fill, outras_fill, atrasado2_fill,
     cores_regionais, bordas, alinhamento,
     normalizar_texto, normalizar_uvr, aplicar_estilo_status
@@ -113,6 +113,9 @@ for nome, caminho in planilhas_auxiliares.items():
             dv_sim_nao = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=True)
             ws_final.add_data_validation(dv_sim_nao)
 
+            dv_sim_nao_ti = DataValidation(type="list", formula1='"Sim,Não,Em Análise"', allow_blank=True)
+            ws_final.add_data_validation(dv_sim_nao_ti)
+
             dv_status = DataValidation(type="list", formula1='"Enviado, Atrasado, Atrasado >= 2, Outras Ocorrências, Sem Técnico, Duplicado"', allow_blank=True) #dropdown com sim e nao
             ws_final.add_data_validation(dv_status)           
 
@@ -184,7 +187,7 @@ for nome, caminho in planilhas_auxiliares.items():
                         dv_sim_nao.add(cell.coordinate)
 
                     if col_idx == 10:
-                        dv_sim_nao.add(cell.coordinate)
+                        dv_sim_nao_ti.add(cell.coordinate)
 
                     if col_idx == 5:
                         dv_status.add(cell.coordinate) 
@@ -223,7 +226,10 @@ for nome, caminho in planilhas_auxiliares.items():
 
             rule_nao = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
             ws_final.conditional_formatting.add(coluna_validado_regional, rule_nao) #Se for selecionado Não, pinta de vermelho
-            ws_final.conditional_formatting.add(coluna_validado_ti, rule_nao) #Se for selecionado Sim, pinta de verde
+            ws_final.conditional_formatting.add(coluna_validado_ti, rule_nao) 
+
+            rule_analise = CellIsRule(operator='equal', formula=['"Em Análise"'], stopIfTrue=True, fill=analise_fill) 
+            ws_final.conditional_formatting.add(coluna_validado_ti, rule_analise)   #Se for selecionado Em Análise, pinta de laranja    
 
             status_rules = {
             "Enviado": {"fill": enviado_fill, "font": enviado_font},
