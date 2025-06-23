@@ -79,7 +79,6 @@ for nome, caminho in planilhas_auxiliares.items():
     for nome_aba in abas_para_copiar:
         if nome_aba in wb_aux.sheetnames:
             # Só copia se a aba ainda não existir no workbook de destino.
-            # Isso é crucial para que os scripts form2 e form3 não tentem recriar a aba.
             if nome_aba not in wb_destino.sheetnames:
                 print(f"Copiando a aba '{nome_aba}' do modelo '{nome}'...")
                 ws_origem = wb_aux[nome_aba]
@@ -114,12 +113,10 @@ for nome, caminho in planilhas_auxiliares.items():
                 if ws_origem.freeze_panes:
                     ws_destino_aba.freeze_panes = ws_origem.freeze_panes
 
-                # 1. Itera sobre os intervalos (as chaves do objeto)
+
                 for range_string in ws_origem.conditional_formatting:
-                    # 2. Pega a lista de regras para aquele intervalo
                     rules_list = ws_origem.conditional_formatting[range_string]
-                    
-                    # 3. Itera sobre a lista de objetos de regra e os adiciona
+
                     for rule in rules_list:
                         ws_destino_aba.conditional_formatting.add(range_string, rule)
 
