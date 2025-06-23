@@ -63,6 +63,7 @@ for _, row in df_input.iterrows():
 for nome, caminho in planilhas_auxiliares.items():
     wb_aux = load_workbook(caminho)
 
+
     # Verifica se a aba existe
     if "Form 1 - Município" not in wb_aux.sheetnames:
         print(f"A aba 'Form 1 - Município' não foi encontrada em {nome}. Nenhuma modificação será feita.")
@@ -73,7 +74,52 @@ for nome, caminho in planilhas_auxiliares.items():
     
     # Usa o workbook que foi criado no EXECUTAR_TODOS
     wb_destino = {"belem": belem_wb, "expansao": expansao_wb, "grs": grs_wb}[nome] # type: ignore
+
+    abas_para_copiar = ["Resumo", "Monitoramento"]
+    for nome_aba in abas_para_copiar:
+        if nome_aba in wb_aux.sheetnames:
+            # Só copia se a aba ainda não existir no workbook de destino.
+            # Isso é crucial para que os scripts form2 e form3 não tentem recriar a aba.
+            if nome_aba not in wb_destino.sheetnames:
+                print(f"Copiando a aba '{nome_aba}' do modelo '{nome}'...")
+                ws_origem = wb_aux[nome_aba]
+                ws_destino_aba = wb_destino.create_sheet(nome_aba)
+
+                # Copia os dados e estilos célula por célula
+                for row in ws_origem.iter_rows():
+                    for cell in row:
+                        new_cell = ws_destino_aba.cell(row=cell.row, column=cell.column, value=cell.value)
+                        if cell.has_style:
+                            new_cell.font = Font(name=cell.font.name, size=cell.font.size, bold=cell.font.bold, italic=cell.font.italic, color=cell.font.color)
+                            new_cell.border = Border(left=cell.border.left, right=cell.border.right, top=cell.border.top, bottom=cell.border.bottom)
+                            new_cell.fill = PatternFill(fill_type=cell.fill.fill_type, start_color=cell.fill.start_color, end_color=cell.fill.end_color)
+                            new_cell.alignment = Alignment(horizontal=cell.alignment.horizontal, vertical=cell.alignment.vertical, wrap_text=cell.alignment.wrap_text, shrink_to_fit=cell.alignment.shrink_to_fit)
+                            new_cell.number_format = cell.number_format
+
+                # Copia as dimensões das colunas e linhas
+                for col_letter, dim in ws_origem.column_dimensions.items():
+                    ws_destino_aba.column_dimensions[col_letter].width = dim.width
+                for row_index, dim in ws_origem.row_dimensions.items():
+                    ws_destino_aba.row_dimensions[row_index].height = dim.height
+
+                # Copia as células mescladas
+                for merged_cell_range in ws_origem.merged_cells.ranges:
+                    ws_destino_aba.merge_cells(str(merged_cell_range))
+                
+                # Copia as validações de dados
+                for dv in ws_origem.data_validations.dataValidation:
+                    ws_destino_aba.add_data_validation(dv)
+                
+                # Copia a configuração do freeze_panes
+                if ws_origem.freeze_panes:
+                    ws_destino_aba.freeze_panes = ws_origem.freeze_panes
+
+
+
+
     novo_ws = wb_destino.create_sheet("Form 1 - Município")  
+
+    
 
     dv_sim_nao = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=True) #dropdown com sim e nao
     novo_ws.add_data_validation(dv_sim_nao)
