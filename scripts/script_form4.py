@@ -130,6 +130,12 @@ for nome, caminho in planilhas_auxiliares.items():
             for dv in ws_origem.data_validations.dataValidation:
                 ws_destino.add_data_validation(dv)
 
+            for range_string in ws_origem.conditional_formatting:
+                rules_list = ws_origem.conditional_formatting[range_string]
+                    
+                for rule in rules_list:
+                    ws_destino.conditional_formatting.add(range_string, rule)
+
     for aba in wb_aux.sheetnames:
         # Só processa abas no formato MM.AA
         if aba.count('.') == 1 and all(x.isdigit() for x in aba.split('.')):

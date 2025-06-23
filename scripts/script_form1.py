@@ -114,6 +114,15 @@ for nome, caminho in planilhas_auxiliares.items():
                 if ws_origem.freeze_panes:
                     ws_destino_aba.freeze_panes = ws_origem.freeze_panes
 
+                # 1. Itera sobre os intervalos (as chaves do objeto)
+                for range_string in ws_origem.conditional_formatting:
+                    # 2. Pega a lista de regras para aquele intervalo
+                    rules_list = ws_origem.conditional_formatting[range_string]
+                    
+                    # 3. Itera sobre a lista de objetos de regra e os adiciona
+                    for rule in rules_list:
+                        ws_destino_aba.conditional_formatting.add(range_string, rule)
+
 
 
 
