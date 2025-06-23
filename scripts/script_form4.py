@@ -278,7 +278,10 @@ for nome, caminho in planilhas_auxiliares.items():
                                 stopIfTrue=True,
                                 fill=styles["fill"],
                                 font=styles["font"])
-                ws_final.conditional_formatting.add(coluna_status, rule)   
+                ws_final.conditional_formatting.add(coluna_status, rule) 
+
+            ws_final.freeze_panes = 'D1' #Congela as colunas A,B,C  
+
 
 # Cria aba "irregulares" com registros que não se encaixam nas abas mensais
 for nome, wb in wb_final.items():
@@ -332,6 +335,11 @@ for nome, wb in wb_final.items():
         max_length = max(len(str(cell.value)) if cell.value else 0 for cell in col)
         col_letter = col[0].column_letter
         aba_irregulares.column_dimensions[col_letter].width = max_length + 5
+
+    aba_irregulares.freeze_panes = 'D1'
+
+    
+
 
 
 

@@ -166,6 +166,9 @@ for nome, caminho in planilhas_auxiliares.items():
         col_letter = col[0].column_letter
         novo_ws.column_dimensions[col_letter].width = max_length + 5
 
+
+    novo_ws.freeze_panes = 'D1' #Congela as colunas A,B,C
+
        
     if novo_ws.max_row >= 2: 
 
