@@ -304,12 +304,12 @@ for nome, wb in wb_final.items():
         wb.remove(wb["Irregulares"]) # Remove qualquer versão antiga para evitar conflitos
     aba_irregulares_final = wb.create_sheet("Irregulares")
 
-    # Define o cabeçalho padrão e completo para a nova aba
+
     colunas_irregulares_padrao = [
         "Regional", "Município", "UVR", "Técnico de UVR", "Situação", 
-        "Data de Envio","Mês de referência", "Validado pelo Regional", "Observações"
+        "Data de Envio", "Mês de referência", "Validado pelo Regional", "Observações"
     ]
-    # Escreve o novo cabeçalho formatado
+    # Escreve o novo cabeçalho 
     for col_num, col_name in enumerate(colunas_irregulares_padrao, start=1):
         cell = aba_irregulares_final.cell(row=1, column=col_num, value=col_name)
         cell.fill = cabeçalho_fill
@@ -321,56 +321,42 @@ for nome, wb in wb_final.items():
     if "Irregulares" in wb_aux.sheetnames:
         aba_irregulares_origem = wb_aux["Irregulares"]
         
-        # Lê o cabeçalho da planilha de origem para mapear as colunas dinamicamente
         headers_origem = [cell.value for cell in aba_irregulares_origem[1]]
         try:
-            # Encontra a posição de cada coluna na planilha de origem
-            idx_map = {
-                "Regional": headers_origem.index("Regional"),
-                "Município": headers_origem.index("Município"),
-                "UVR": headers_origem.index("UVR"),
-                "Técnico de UVR": headers_origem.index("Técnico de UVR"),
-                "Situação": headers_origem.index("Situação"),
-                "Data de Envio": headers_origem.index("Data de Envio"),
-                "Mês de referência": headers_origem.index("Mês de referência"),
-                "Validado pelo Regional": headers_origem.index("Validado pelo Regional"),
-                "Observações": headers_origem.index("Observações")
-
-            }
+            idx_map = {h: headers_origem.index(h) for h in colunas_irregulares_padrao if h in headers_origem}
         except ValueError as e:
             print(f"AVISO: A aba 'Irregulares' em '{caminho_aux}' não tem a coluna esperada: {e}. A migração pode falhar.")
-            idx_map = {} # Reseta o mapa para não prosseguir com a migração
+            idx_map = {}
 
         if idx_map:
             for row_origem in aba_irregulares_origem.iter_rows(min_row=2, values_only=True):
-                # Extrai os dados das colunas mapeadas
-                municipio = row_origem[idx_map["Município"]]
-                if not municipio: continue # Pula linhas vazias
+                municipio = row_origem[idx_map.get("Município")]
+                if not municipio: continue
 
-                uvr = row_origem[idx_map["UVR"]]
-                data_envio = row_origem[idx_map["Data de Envio"]]
-                mes_ref = row_origem[idx_map["Mês de referência"]]
-                validado = row_origem[idx_map["Validado pelo Regional"]]
-                observacoes = row_origem[idx_map["Observações"]]
-
-                # Constrói a linha no novo formato padrão
+              
+                validado = row_origem[idx_map.get("Validado pelo Regional")]
+                if validado not in ("Sim", "Não"):
+                    validado = "Não"
+                
                 linha_migrada = [
-                    row_origem[idx_map["Regional"]],
+                    row_origem[idx_map.get("Regional", "")] if "Regional" in idx_map else "",
                     municipio,
-                    uvr,
-                    row_origem[idx_map["Técnico de UVR"]],
-                    row_origem[idx_map["Situação"]],
-                    data_envio,
-                    mes_ref,
-                    validado, 
-                    observacoes 
-
-                    
+                    row_origem[idx_map.get("UVR", "")] if "UVR" in idx_map else "",
+                    row_origem[idx_map.get("Técnico de UVR", "")] if "Técnico de UVR" in idx_map else "",
+                    row_origem[idx_map.get("Situação", "")] if "Situação" in idx_map else "",
+                    row_origem[idx_map.get("Data de Envio", "")] if "Data de Envio" in idx_map else "",
+                    row_origem[idx_map.get("Mês de referência", "")] if "Mês de referência" in idx_map else "",
+                    validado,
+                    row_origem[idx_map.get("Observações", "")] if "Observações" in idx_map else ""
                 ]
                 aba_irregulares_final.append(linha_migrada)
 
-                # Adiciona a chave do registro migrado ao set de controle
-                chave = (normalizar_texto(municipio), normalizar_uvr(uvr), data_envio, mes_ref)
+                chave = (
+                    normalizar_texto(municipio), 
+                    normalizar_uvr(row_origem[idx_map.get("UVR")]), 
+                    row_origem[idx_map.get("Data de Envio")], 
+                    row_origem[idx_map.get("Mês de referência")]
+                )
                 chaves_existentes.add(chave)
 
     # ETAPA 2: Adicionar novos registros irregulares do CSV que ainda não existem
@@ -389,30 +375,51 @@ for nome, wb in wb_final.items():
                 if chave_nova not in chaves_existentes:
                     nova_linha_dados = [
                         regionais_por_municipio.get(municipio_uvr, ""),
-                        info["municipio_original"], info["uvr_nro"], info["tc_uvr"],
-                        info["status"], data_envio, mes_ano, "", "", 
+                        info["municipio_original"], 
+                        info["uvr_nro"], 
+                        info["tc_uvr"],
+                        info["status"], 
+                        data_envio, 
+                        mes_ano, 
+                        "Não", 
+                        "", 
                     ]
                     aba_irregulares_final.append(nova_linha_dados)
-                    chaves_existentes.add(chave_nova) # Garante que não será adicionado de novo
+                    chaves_existentes.add(chave_nova)
 
     # ETAPA 3: Aplicar estilos e formatação a TODAS as linhas da aba final
     for row_idx in range(2, aba_irregulares_final.max_row + 1):
-        # Estilos básicos
         for col_idx in range(1, len(colunas_irregulares_padrao) + 1):
             cell = aba_irregulares_final.cell(row=row_idx, column=col_idx)
             cell.border = bordas
             cell.alignment = alinhamento
             cell.font = Font(name='Arial', size=11)
         
-        # Cor da regional
         regional_cell = aba_irregulares_final.cell(row=row_idx, column=1)
         if regional_cell.value in cores_regionais:
             cor_hex = cores_regionais[regional_cell.value]
             regional_cell.fill = PatternFill(start_color=cor_hex, end_color=cor_hex, fill_type="solid")
 
-        # Cor do status
         status_cell = aba_irregulares_final.cell(row=row_idx, column=5)
         aplicar_estilo_status(status_cell, status_cell.value)
+    
+    
+    if aba_irregulares_final.max_row > 1:
+        # Cria a regra de validação (dropdown)
+        dv_sim_nao_irr = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=False)
+        aba_irregulares_final.add_data_validation(dv_sim_nao_irr)
+        
+        # Define o range da coluna a ser afetada (H2 até a última linha)
+        range_validado = f"H2:H{aba_irregulares_final.max_row}"
+        dv_sim_nao_irr.add(range_validado)
+
+        # Define as regras de formatação condicional
+        rule_sim_irr = CellIsRule(operator='equal', formula=['"Sim"'], stopIfTrue=True, fill=validado_sim_fill)
+        rule_nao_irr = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
+
+        # Aplica as regras ao range
+        aba_irregulares_final.conditional_formatting.add(range_validado, rule_sim_irr)
+        aba_irregulares_final.conditional_formatting.add(range_validado, rule_nao_irr)
 
     # Ajusta a largura das colunas
     if aba_irregulares_final.max_row > 1:
