@@ -306,7 +306,7 @@ for nome, wb in wb_final.items():
 
 
     colunas_irregulares_padrao = [
-        "Regional", "Município", "UVR", "Técnico de UVR", "Situação", 
+        "Regional", "Município", "UVR", "Técnico de UVR", 
         "Data de Envio", "Mês de referência", "Validado pelo Regional", "Observações"
     ]
     # Escreve o novo cabeçalho 
@@ -343,7 +343,6 @@ for nome, wb in wb_final.items():
                     municipio,
                     row_origem[idx_map.get("UVR", "")] if "UVR" in idx_map else "",
                     row_origem[idx_map.get("Técnico de UVR", "")] if "Técnico de UVR" in idx_map else "",
-                    row_origem[idx_map.get("Situação", "")] if "Situação" in idx_map else "",
                     row_origem[idx_map.get("Data de Envio", "")] if "Data de Envio" in idx_map else "",
                     row_origem[idx_map.get("Mês de referência", "")] if "Mês de referência" in idx_map else "",
                     validado,
@@ -378,7 +377,6 @@ for nome, wb in wb_final.items():
                         info["municipio_original"], 
                         info["uvr_nro"], 
                         info["tc_uvr"],
-                        info["status"], 
                         data_envio, 
                         mes_ano, 
                         "Não", 
@@ -410,7 +408,7 @@ for nome, wb in wb_final.items():
         aba_irregulares_final.add_data_validation(dv_sim_nao_irr)
         
         # Define o range da coluna a ser afetada (H2 até a última linha)
-        range_validado = f"H2:H{aba_irregulares_final.max_row}"
+        range_validado = f"G2:G{aba_irregulares_final.max_row}"
         dv_sim_nao_irr.add(range_validado)
 
         # Define as regras de formatação condicional
@@ -428,6 +426,7 @@ for nome, wb in wb_final.items():
             aba_irregulares_final.column_dimensions[col[0].column_letter].width = max_length + 5
 
     aba_irregulares_final.freeze_panes = 'D1'
+    aba_irregulares_final.auto_filter.ref = f"A1:G1"
 
     
 
