@@ -98,10 +98,10 @@ for nome in wb_final:
 for nome, caminho in planilhas_auxiliares.items():
     wb_aux = load_workbook(caminho)
 
-    abas_para_copiar_completamente = ["Resumo", "Monitoramento", "Regionais"]
+    abas_para_copiar = ["Resumo", "Monitoramento", "Regionais"]
 
-    for nome_aba in abas_para_copiar_completamente:
-        if nome_aba in wb_aux.sheetnames:
+    for nome_aba in abas_para_copiar:
+        if nome_aba in wb_aux.sheetnames: #verifica se existe, faz isso em todos (grs,expansao,belem)
             print(f"Copiando aba '{nome_aba}' para o arquivo de '{nome}'...")
             ws_origem = wb_aux[nome_aba]
             ws_destino = wb_final[nome].create_sheet(nome_aba)
