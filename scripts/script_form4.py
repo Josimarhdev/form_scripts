@@ -321,9 +321,10 @@ for nome, wb in wb_final.items():
     if "Irregulares" in wb_aux.sheetnames:
         aba_irregulares_origem = wb_aux["Irregulares"]
         
-        headers_origem = [cell.value for cell in aba_irregulares_origem[1]]
+        headers_origem = [cell.value for cell in aba_irregulares_origem[1]] # Captura os nomes dos cabeçalhos da primeira linha da aba de origem
         try:
-            idx_map = {h: headers_origem.index(h) for h in colunas_irregulares_padrao if h in headers_origem}
+            # Mapeia o índice de cada coluna esperada, conforme a lista de colunas padrão
+            idx_map = {h: headers_origem.index(h) for h in colunas_irregulares_padrao if h in headers_origem} 
         except ValueError as e:
             print(f"AVISO: A aba 'Irregulares' em '{caminho_aux}' não tem a coluna esperada: {e}. A migração pode falhar.")
             idx_map = {}
@@ -429,9 +430,6 @@ for nome, wb in wb_final.items():
     aba_irregulares_final.auto_filter.ref = f"A1:G1"
 
     
-
-
-
 
 # Salva os novos arquivos com nome atualizado
 for nome, wb in wb_final.items():

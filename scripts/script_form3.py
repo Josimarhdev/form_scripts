@@ -60,7 +60,9 @@ for _, row in df_input.iterrows():
     if cnpj not in dados_atualizados[municipio_uvr_normalizado]["cnpjs"]:
         dados_atualizados[municipio_uvr_normalizado]["cnpjs"][cnpj] = [data_envio_formatada]
     else:
+        print(f'{municipio_uvr_normalizado} DUPLICADO')
         dados_atualizados[municipio_uvr_normalizado]["cnpjs"][cnpj].append(data_envio_formatada)
+        
         dados_atualizados[municipio_uvr_normalizado]["status"] = "Duplicado"  # Marca como duplicado
 
 # Processa cada uma das planilhas auxiliares (Belém, GRS e Expansão)
