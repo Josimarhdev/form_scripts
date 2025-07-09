@@ -289,19 +289,17 @@ for nome, caminho in planilhas_auxiliares.items():
             ws_final.freeze_panes = 'D1' #Congela as colunas A,B,C  
 
 
-# Cria aba "irregulares" com registros que não se encaixam nas abas mensais
- # Processa a aba de irregulares para cada arquivo de saída (Belém, Expansão, GRS)
+
+ # processa a aba de irregulares (grs,expansao e belem)
 for nome, wb in wb_final.items():
     chaves_existentes = set()
     
-    # Recarrega o workbook auxiliar de entrada para ter acesso à aba "Irregulares" original
     caminho_aux = planilhas_auxiliares[nome]
     wb_aux = load_workbook(caminho_aux)
 
-    # Cria a nova aba de irregulares no arquivo final. Ela sempre será reconstruída
-    # para garantir a migração correta e a padronização do formato.
+    # cria a aba de irregulares no arquivo final (ela sempre é recriada, porém coletando as informações já existentes na planilha de entrada)
     if "Irregulares" in wb.sheetnames:
-        wb.remove(wb["Irregulares"]) # Remove qualquer versão antiga para evitar conflitos
+        wb.remove(wb["Irregulares"]) # remove qualquer possível versão antiga para evitar conflitos
     aba_irregulares_final = wb.create_sheet("Irregulares")
 
 
@@ -317,16 +315,16 @@ for nome, wb in wb_final.items():
         cell.border = bordas
         cell.alignment = alinhamento
 
-    # ETAPA 1: Migrar dados da aba "Irregulares" do arquivo de ENTRADA
+    # primeira etapa: migrar dados da aba de irregulares do arquivo de entrada 
     if "Irregulares" in wb_aux.sheetnames:
         aba_irregulares_origem = wb_aux["Irregulares"]
         
-        headers_origem = [cell.value for cell in aba_irregulares_origem[1]] # Captura os nomes dos cabeçalhos da primeira linha da aba de origem
+        headers_origem = [cell.value for cell in aba_irregulares_origem[1]] # captura os nomes dos cabeçalhos da primeira linha da aba de origem
         try:
-            # Mapeia o índice de cada coluna esperada, conforme a lista de colunas padrão
+            # mapeia o índice de cada coluna esperada, conforme a lista de colunas padrão
             idx_map = {h: headers_origem.index(h) for h in colunas_irregulares_padrao if h in headers_origem} 
         except ValueError as e:
-            print(f"AVISO: A aba 'Irregulares' em '{caminho_aux}' não tem a coluna esperada: {e}. A migração pode falhar.")
+            print(f"AVISO: A aba 'Irregulares' em '{caminho_aux}' não tem a coluna esperada")
             idx_map = {}
 
         if idx_map:
@@ -357,13 +355,13 @@ for nome, wb in wb_final.items():
                     row_origem[idx_map.get("Data de Envio")], 
                     row_origem[idx_map.get("Mês de referência")]
                 )
-                chaves_existentes.add(chave)
+                chaves_existentes.add(chave) #adiciona a chave para posterior verificação, para que apenas sejam adicionados novos registros
 
-    # ETAPA 2: Adicionar novos registros irregulares do CSV que ainda não existem
+    # segunda etapa: adicionar novos registros irregulares do csv que ainda não existem
     for chave_composta, info in dados_atualizados.items():
         municipio_uvr, mes_ano = chave_composta
         
-        if mes_ano not in wb.sheetnames and div_por_municipio.get(municipio_uvr) == nome:
+        if mes_ano not in wb.sheetnames and div_por_municipio.get(municipio_uvr) == nome: # verifica se é irregular
             for data_envio in info["datas_envio"]:
                 chave_nova = (
                     normalizar_texto(info["municipio_original"]),
@@ -372,7 +370,7 @@ for nome, wb in wb_final.items():
                     mes_ano
                 )
                 
-                if chave_nova not in chaves_existentes:
+                if chave_nova not in chaves_existentes: #verifica se a chave já não existe
                     nova_linha_dados = [
                         regionais_por_municipio.get(municipio_uvr, ""),
                         info["municipio_original"], 
@@ -386,7 +384,7 @@ for nome, wb in wb_final.items():
                     aba_irregulares_final.append(nova_linha_dados)
                     chaves_existentes.add(chave_nova)
 
-    # ETAPA 3: Aplicar estilos e formatação a TODAS as linhas da aba final
+    # aplicar estilização na aba de irregulares
     for row_idx in range(2, aba_irregulares_final.max_row + 1):
         for col_idx in range(1, len(colunas_irregulares_padrao) + 1):
             cell = aba_irregulares_final.cell(row=row_idx, column=col_idx)
@@ -404,7 +402,7 @@ for nome, wb in wb_final.items():
     
     
     if aba_irregulares_final.max_row > 1:
-        # Cria a regra de validação (dropdown)
+        # Cria o dropdown
         dv_sim_nao_irr = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=False)
         aba_irregulares_final.add_data_validation(dv_sim_nao_irr)
         
