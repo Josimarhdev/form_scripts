@@ -34,8 +34,7 @@ dados_atualizados = {}  # Dicionário para armazenar informações atualizadas
 for _, row in df_input.iterrows():
     municipio = row['municipio']
     uvr_nro = row['uvr_numero']
-    data_envio = row['data_envio']
-    cnpj = row['cnpj']  
+    data_envio = row['data_envio'] 
 
     # Gera a chave normalizada (municipio + UVR)
     if isinstance(municipio, str):
