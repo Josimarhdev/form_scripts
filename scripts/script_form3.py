@@ -103,6 +103,16 @@ for nome, caminho in planilhas_auxiliares.items():
         uvr_nro_original = row[2]  
         row_data = list(row)
 
+        formula = (
+            f'=IFERROR(IF(INDEX(\'Form 1 - Município\'!D2:D500, '
+            f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'Form 1 - Município\'!B2:B500&\'Form 1 - Município\'!C2:C500, 0), 0))="", "", '
+            f'INDEX(\'Form 1 - Município\'!D2:D500, '
+            f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'Form 1 - Município\'!B2:B500&\'Form 1 - Município\'!C2:C500, 0), 0))), "")'
+            )
+
+                    
+        row_data[3] = formula
+
         # Normaliza a chave para buscar nos dados atualizados
         if isinstance(municipio_original, str):
             municipio_uvr_normalizado = f"{normalizar_texto(municipio_original)}_{normalizar_uvr(uvr_nro_original)}"
@@ -164,6 +174,7 @@ for nome, caminho in planilhas_auxiliares.items():
         novo_ws.column_dimensions[col_letter].width = max_length + 5
 
     novo_ws.freeze_panes = 'D1' #Congela as colunas A,B,C
+    novo_ws.column_dimensions['D'].width = 45
 
 
     if novo_ws.max_row >= 2: 

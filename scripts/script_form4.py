@@ -184,6 +184,18 @@ for nome, caminho in planilhas_auxiliares.items():
                 uvr_nro_original = row[2]
                 row_data = list(row)
 
+
+                if aba != '01.25':
+                    formula = (
+                        f'=IFERROR(IF(INDEX(\'01.25\'!D2:D500, '
+                        f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'01.25\'!B2:B500&\'01.25\'!C2:C500, 0), 0))="", "", '
+                        f'INDEX(\'01.25\'!D2:D500, '
+                        f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'01.25\'!B2:B500&\'01.25\'!C2:C500, 0), 0))), "")'
+                    )
+
+                    
+                    row_data[3] = formula
+               
                 if not isinstance(municipio_original, str) or not municipio_original.strip():
                     continue
 
@@ -287,6 +299,7 @@ for nome, caminho in planilhas_auxiliares.items():
                 ws_final.conditional_formatting.add(coluna_status, rule) 
 
             ws_final.freeze_panes = 'D1' #Congela as colunas A,B,C  
+            ws_final.column_dimensions['D'].width = 45
 
 
 
@@ -307,6 +320,8 @@ for nome, wb in wb_final.items():
         "Regional", "Município", "UVR", "Técnico de UVR", 
         "Data de Envio", "Mês de referência", "Validado pelo Regional", "Observações"
     ]
+
+    
     # Escreve o novo cabeçalho 
     for col_num, col_name in enumerate(colunas_irregulares_padrao, start=1):
         cell = aba_irregulares_final.cell(row=1, column=col_num, value=col_name)
