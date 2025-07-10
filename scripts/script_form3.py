@@ -52,18 +52,15 @@ for _, row in df_input.iterrows():
         except (ValueError, TypeError):
             data_envio_formatada = ""
 
-    # Cria a entrada no dicionário se ainda não existir
-    if municipio_uvr_normalizado not in dados_atualizados:
-        dados_atualizados[municipio_uvr_normalizado] = {"cnpjs": {}, "status": "Enviado"}
-
-    # Adiciona ou atualiza as datas de envio por CNPJ
-    if cnpj not in dados_atualizados[municipio_uvr_normalizado]["cnpjs"]:
-        dados_atualizados[municipio_uvr_normalizado]["cnpjs"][cnpj] = [data_envio_formatada]
+    # Verifica se já há entrada para o município/UVR e marca como duplicado se for o caso
+    if municipio_uvr_normalizado in dados_atualizados:
+        dados_atualizados[municipio_uvr_normalizado]["datas"].append(data_envio_formatada)
+        dados_atualizados[municipio_uvr_normalizado]["status"] = "Duplicado"
     else:
-        print(f'{municipio_uvr_normalizado} DUPLICADO')
-        dados_atualizados[municipio_uvr_normalizado]["cnpjs"][cnpj].append(data_envio_formatada)
-        
-        dados_atualizados[municipio_uvr_normalizado]["status"] = "Duplicado"  # Marca como duplicado
+        dados_atualizados[municipio_uvr_normalizado] = {
+            "datas": [data_envio_formatada],
+            "status": "Enviado"
+        }
 
 # Processa cada uma das planilhas auxiliares (Belém, GRS e Expansão)
 for nome, caminho in planilhas_auxiliares.items():
@@ -114,18 +111,17 @@ for nome, caminho in planilhas_auxiliares.items():
         else:
             municipio_uvr_normalizado = ""
 
-        # Atualiza as colunas de status e datas, se dados foram encontrados
+        # Se foi enviado, atualiza status e data com os dados atualizados do drive
         if municipio_uvr_normalizado in dados_atualizados:
-            novas_datas = ", ".join(
-                sum(dados_atualizados[municipio_uvr_normalizado]["cnpjs"].values(), [])
-            )
+            novas_datas = ", ".join(dados_atualizados[municipio_uvr_normalizado]["datas"])
             novo_status = dados_atualizados[municipio_uvr_normalizado]["status"]
-            row_data[5] = novas_datas  # Data de envio
-            row_data[4] = novo_status  # Status
-        else: 
+            row_data[5] = novas_datas  # Coluna de data de envio
+            row_data[4] = novo_status  # Coluna de status
+        else:
+            # Define como "Atrasado" caso não tenha status
             if row_data[4] == "Sem Técnico":
                 pass
-            elif row_data[4] == None:
+            elif row_data[4] is None:
                 row_data[4] = "Atrasado"
 
         # Colore a célula da validação
