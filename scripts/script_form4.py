@@ -305,6 +305,8 @@ for nome, caminho in planilhas_auxiliares.items():
 
  # processa a aba de irregulares (grs,expansao e belem)
 for nome, wb in wb_final.items():
+
+    print(nome)
     chaves_existentes = set()
     
     caminho_aux = planilhas_auxiliares[nome]
@@ -318,7 +320,7 @@ for nome, wb in wb_final.items():
 
     colunas_irregulares_padrao = [
         "Regional", "Município", "UVR", "Técnico de UVR", 
-        "Data de Envio", "Mês de referência", "Validado pelo Regional", "Observações"
+        "Data de Envio", "Mês de referência", "Validado pelo Regional", "Observações", "Formulários para Deletar (ID)", "Validado Equipe de TI", "Resposta Equipe de TI"
     ]
 
     
@@ -330,9 +332,22 @@ for nome, wb in wb_final.items():
         cell.border = bordas
         cell.alignment = alinhamento
 
-    # primeira etapa: migrar dados da aba de irregulares do arquivo de entrada 
+    # primeira etapa: migrar dados da aba de irregulares do arquivo de entrada
     if "Irregulares" in wb_aux.sheetnames:
         aba_irregulares_origem = wb_aux["Irregulares"]
+
+        # cria um conjunto com as chaves de todos os novos envios para verificação
+        chaves_novos_envios = set()
+        for chave_composta, info in dados_atualizados.items():
+            _municipio_uvr, mes_ano = chave_composta
+            for data_envio in info["datas_envio"]:
+                chave = (
+                    normalizar_texto(info["municipio_original"]),
+                    normalizar_uvr(info["uvr_nro"]),
+                    data_envio,
+                    mes_ano
+                )
+                chaves_novos_envios.add(chave)
         
         headers_origem = [cell.value for cell in aba_irregulares_origem[1]] # captura os nomes dos cabeçalhos da primeira linha da aba de origem
         try:
@@ -347,30 +362,41 @@ for nome, wb in wb_final.items():
                 municipio = row_origem[idx_map.get("Município")]
                 if not municipio: continue
 
-              
-                validado = row_origem[idx_map.get("Validado pelo Regional")]
-                if validado not in ("Sim", "Não"):
-                    validado = "Não"
-                
-                linha_migrada = [
-                    row_origem[idx_map.get("Regional", "")] if "Regional" in idx_map else "",
-                    municipio,
-                    row_origem[idx_map.get("UVR", "")] if "UVR" in idx_map else "",
-                    row_origem[idx_map.get("Técnico de UVR", "")] if "Técnico de UVR" in idx_map else "",
-                    row_origem[idx_map.get("Data de Envio", "")] if "Data de Envio" in idx_map else "",
-                    row_origem[idx_map.get("Mês de referência", "")] if "Mês de referência" in idx_map else "",
-                    validado,
-                    row_origem[idx_map.get("Observações", "")] if "Observações" in idx_map else ""
-                ]
-                aba_irregulares_final.append(linha_migrada)
-
-                chave = (
+                # Cria uma chave para a linha atual do arquivo de entrada para comparação
+                chave_origem = (
                     normalizar_texto(municipio), 
                     normalizar_uvr(row_origem[idx_map.get("UVR")]), 
                     row_origem[idx_map.get("Data de Envio")], 
                     row_origem[idx_map.get("Mês de referência")]
                 )
-                chaves_existentes.add(chave) #adiciona a chave para posterior verificação, para que apenas sejam adicionados novos registros
+                
+                # migra a linha somente se a chave de origem existir nos novos envios
+                if chave_origem in chaves_novos_envios:
+                    idx_validado_regional = idx_map.get("Validado pelo Regional")
+                    valor_validado = row_origem[idx_validado_regional] if idx_validado_regional is not None else "Não"
+                    validado = "Sim" if valor_validado == "Sim" else "Não"
+
+                    idx_validado_ti = idx_map.get("Validado Equipe de TI")
+                    valor_validado_ti = row_origem[idx_validado_ti] if idx_validado_ti is not None else "Não"
+                    validado_TI = "Sim" if valor_validado_ti == "Sim" else "Não"
+                    
+                    linha_migrada = [
+                        row_origem[idx_map.get("Regional", "")] if "Regional" in idx_map else "",
+                        municipio,
+                        row_origem[idx_map.get("UVR", "")] if "UVR" in idx_map else "",
+                        row_origem[idx_map.get("Técnico de UVR", "")] if "Técnico de UVR" in idx_map else "",
+                        row_origem[idx_map.get("Data de Envio", "")] if "Data de Envio" in idx_map else "",
+                        row_origem[idx_map.get("Mês de referência", "")] if "Mês de referência" in idx_map else "",
+                        validado,
+                        row_origem[idx_map.get("Observações", "")] if "Observações" in idx_map else "",
+                        row_origem[idx_map.get("Formulários para Deletar (ID)", "")] if "Formulários para Deletar (ID)" in idx_map else "",
+                        validado_TI, 
+                        row_origem[idx_map.get("Resposta Equipe de TI", "")] if "Resposta Equipe de TI" in idx_map else ""                   
+                    ]
+                    aba_irregulares_final.append(linha_migrada)
+
+                    # Adiciona a chave da linha migrada para evitar duplicatas na segunda etapa
+                    chaves_existentes.add(chave_origem)
 
     # segunda etapa: adicionar novos registros irregulares do csv que ainda não existem
     for chave_composta, info in dados_atualizados.items():
@@ -395,6 +421,9 @@ for nome, wb in wb_final.items():
                         mes_ano, 
                         "Não", 
                         "", 
+                        "",
+                        "Não",
+                        "",
                     ]
                     aba_irregulares_final.append(nova_linha_dados)
                     chaves_existentes.add(chave_nova)
@@ -423,15 +452,21 @@ for nome, wb in wb_final.items():
         
         # Define o range da coluna a ser afetada (H2 até a última linha)
         range_validado = f"G2:G{aba_irregulares_final.max_row}"
+        range_validado_TI = f"J2:J{aba_irregulares_final.max_row}"        
         dv_sim_nao_irr.add(range_validado)
+        dv_sim_nao_irr.add(range_validado_TI)
 
         # Define as regras de formatação condicional
         rule_sim_irr = CellIsRule(operator='equal', formula=['"Sim"'], stopIfTrue=True, fill=validado_sim_fill)
         rule_nao_irr = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
 
+
         # Aplica as regras ao range
         aba_irregulares_final.conditional_formatting.add(range_validado, rule_sim_irr)
         aba_irregulares_final.conditional_formatting.add(range_validado, rule_nao_irr)
+
+        aba_irregulares_final.conditional_formatting.add(range_validado_TI, rule_sim_irr)
+        aba_irregulares_final.conditional_formatting.add(range_validado_TI, rule_nao_irr)
 
     # Ajusta a largura das colunas
     if aba_irregulares_final.max_row > 1:
