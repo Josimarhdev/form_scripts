@@ -501,7 +501,7 @@ for nome, wb in wb_final.items():
     aba_irregulares_final.freeze_panes = 'D1'
     aba_irregulares_final.auto_filter.ref = f"A1:G1"
 
-# --- Lógica para a Aba "Discrepantes" com o LAYOUT SIMPLIFICADO ---
+# --- Lógica para a Aba "Discrepantes" ---
 for nome, wb in wb_final.items():
     print(f"Processando Discrepantes para '{nome}'...")
     if "Discrepantes" in wb.sheetnames:
@@ -514,7 +514,7 @@ for nome, wb in wb_final.items():
     banded_row_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
 
     # Linha 1: Cabeçalhos das Colunas (agora na primeira linha)
-    headers = ["Regional", "Município", "UVR", "Técnico UVR", "Mês Referência", "Data de Envio", "Receita Vendas"]
+    headers = ["Regional", "Município", "UVR", "Técnico UVR", "Mês Referência", "Data de Envio", "Receita Vendas", "Média Utilizada (R$)"]
     for col_num, header_text in enumerate(headers, start=1):
         cell = ws_discrepantes.cell(row=1, column=col_num, value=header_text)
         cell.fill = cabeçalho_fill
@@ -522,9 +522,16 @@ for nome, wb in wb_final.items():
         cell.border = bordas
         cell.alignment = alinhamento
 
-    # --- 2. Coleta de dados (sem alteração na lógica) ---
+    # --- 2. Coleta de dados com a nova lógica de semestre ---
     abas_mensais_existentes = set(wb.sheetnames)
     discrepantes_data = []
+
+    
+    # Define o ano e semestre atuais uma vez, antes do loop
+    hoje = datetime.today()
+    ano_atual = hoje.year
+    semestre_atual = 1 if 1 <= hoje.month <= 6 else 2
+   
     
     for chave_composta, info in dados_atualizados.items():
         municipio_uvr, mes_ano_envio = chave_composta
@@ -532,21 +539,51 @@ for nome, wb in wb_final.items():
             chave_media = (normalizar_texto(info["municipio_original"]), normalizar_uvr(info["uvr_nro"]))
             data_ref = info.get("data_referencia_dt")
             valor_envio = info.get("valor_envio")
-            if pd.notna(data_ref) and pd.notna(valor_envio) and chave_media in dados_medias:
-                media_ref = dados_medias[chave_media]["media_s1"] if 1 <= data_ref.month <= 6 else dados_medias[chave_media]["media_s2"]
-                if pd.notna(media_ref) and media_ref > 0:
-                    desvio = abs((valor_envio - media_ref) / media_ref) * 100
-                    if desvio >= 40:
-                        discrepantes_data.append({
-                            "regional": regionais_por_municipio.get(municipio_uvr, ""),
-                            "municipio": info["municipio_original"],
-                            "uvr": info["uvr_nro"],
-                            "tc_uvr": info.get("tc_uvr", ""),
-                            "mes_ano": mes_ano_envio,
-                            "data_envio": info.get("datas_envio", [""])[0],
-                            "valor_envio": valor_envio,
-                            "desvio": desvio
-                        })
+
+            
+            # Verifica se a data de referência é válida antes de prosseguir
+            if pd.notna(data_ref):
+                ano_ref = data_ref.year
+                semestre_ref = 1 if 1 <= data_ref.month <= 6 else 2
+
+                # Lógica para verificar se a data de referência está no semestre atual ou no anterior
+                is_valid_semester = False
+                if semestre_atual == 1:
+                    # Se estamos no 1º semestre, aceita envios do 1º semestre do ano atual
+                    # ou do 2º semestre do ano anterior.
+                    if (ano_ref == ano_atual and semestre_ref == 1) or \
+                       (ano_ref == ano_atual - 1 and semestre_ref == 2):
+                        is_valid_semester = True
+                else: # semestre_atual == 2
+                    # Se estamos no 2º semestre, aceita envios de ambos os semestres do ano atual.
+                    if ano_ref == ano_atual:
+                        is_valid_semester = True
+                
+                # A verificação da discrepância só ocorre se o semestre for válido
+                if is_valid_semester and pd.notna(valor_envio) and chave_media in dados_medias:
+                    
+                    if semestre_atual == 2:
+                        # Se rodamos no 2º semestre, a lógica original funciona.
+                        media_ref = dados_medias[chave_media]["media_s1"] if semestre_ref == 1 else dados_medias[chave_media]["media_s2"]
+                    else:  # semestre_atual == 1
+                        # Se rodamos no 1º semestre, a lógica precisa ser INVERTIDA.
+                        media_ref = dados_medias[chave_media]["media_s2"] if semestre_ref == 1 else dados_medias[chave_media]["media_s1"]
+                   
+                    if pd.notna(media_ref) and media_ref > 0:
+                        desvio = abs((valor_envio - media_ref) / media_ref) * 100
+                        if desvio >= 40:
+                            discrepantes_data.append({
+                                "regional": regionais_por_municipio.get(municipio_uvr, ""),
+                                "municipio": info["municipio_original"],
+                                "uvr": info["uvr_nro"],
+                                "tc_uvr": info.get("tc_uvr", ""),
+                                "mes_ano": mes_ano_envio,
+                                "data_envio": info.get("datas_envio", [""])[0],
+                                "valor_envio": valor_envio,
+                                "desvio": desvio,
+                                "media": media_ref
+                            })
+       
 
     # --- 3. Escrita dos dados com início na linha 2 ---
     discrepantes_data.sort(key=lambda x: x["desvio"], reverse=True)
@@ -557,8 +594,11 @@ for nome, wb in wb_final.items():
         linha = [
             data["regional"], data["municipio"], data["uvr"], data["tc_uvr"],
             data["mes_ano"], data["data_envio"],
-            data["valor_envio"]
+            data["valor_envio"],
+            data["media"]
         ]
+
+        ws_discrepantes.cell(row=row_idx, column=8).number_format = 'R$ #,##0.00'
 
         # Aplica o estilo de linha alternada primeiro
         for col_idx, value in enumerate(linha, start=1):
