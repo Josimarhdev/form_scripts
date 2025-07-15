@@ -508,12 +508,12 @@ for nome, wb in wb_final.items():
         wb.remove(wb["Discrepantes"])
     ws_discrepantes = wb.create_sheet("Discrepantes")
 
-    # --- 1. Construção do cabeçalho simples ---
+    # --- 1. Construção do cabeçalho #  ---
     
     # Estilos de preenchimento
     banded_row_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
 
-    # Linha 1: Cabeçalhos das Colunas (agora na primeira linha)
+   
     headers = ["Regional", "Município", "UVR", "Técnico UVR", "Mês Referência", "Data de Envio", "Receita Vendas", "Média Utilizada (R$)"]
     for col_num, header_text in enumerate(headers, start=1):
         cell = ws_discrepantes.cell(row=1, column=col_num, value=header_text)
@@ -522,7 +522,7 @@ for nome, wb in wb_final.items():
         cell.border = bordas
         cell.alignment = alinhamento
 
-    # --- 2. Coleta de dados com a nova lógica de semestre ---
+    # --- 2. Coleta de dados com a lógica de semestre ---
     abas_mensais_existentes = set(wb.sheetnames)
     discrepantes_data = []
 
@@ -600,7 +600,6 @@ for nome, wb in wb_final.items():
 
         ws_discrepantes.cell(row=row_idx, column=8).number_format = 'R$ #,##0.00'
 
-        # Aplica o estilo de linha alternada primeiro
         for col_idx, value in enumerate(linha, start=1):
             cell = ws_discrepantes.cell(row=row_idx, column=col_idx, value=value)
             cell.border = bordas
