@@ -1,5 +1,5 @@
 from openpyxl import Workbook
-from pathlib import Path #testeee
+from pathlib import Path 
 
 # Inicializa os workbooks globais
 belem_wb = Workbook()
