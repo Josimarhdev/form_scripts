@@ -14,6 +14,24 @@ from utils import (
     normalizar_texto, normalizar_uvr, aplicar_estilo_status
 )
 
+# Adicione este dicionário ao seu código
+VARIAVEIS_ANALISE = {
+    # Mantendo a variável original
+    "Receita Vendas (R$)":         {"col_form_idx": 6, "col_media_s1": "E", "col_media_s2": "M"},
+    # Adicionando as novas variáveis
+    "Receita Serviços (R$)":       {"col_form": "receita_servicos", "col_media_s1": "F", "col_media_s2": "N"},
+    "Despesas (R$)":               {"col_form": "despesas", "col_media_s1": "G", "col_media_s2": "O"},
+    "Material Reciclado (T)": {"col_form": "material_reciclado", "col_media_s1": "H", "col_media_s2": "P"},
+    "Rejeito (T)":                {"col_form": "rejeito", "col_media_s1": "I", "col_media_s2": "Q"},
+    "Total Material Processado (T)": {"col_form": "total_material_processado", "col_media_s1": "J", "col_media_s2": "R"},
+    "Postos de Trabalho (U)":     {"col_form": "postos_de_trabalho", "col_media_s1": "K", "col_media_s2": "S"},
+    "Renda Média (R$)":            {"col_form": "renda_media", "col_media_s1": "L", "col_media_s2": "T"},
+}
+
+# Adicione esta função auxiliar também
+def col_to_idx(letra):
+    return ord(letra.upper()) - ord('A')
+
 # Define os caminhos dos arquivos envolvidos
 caminho_script = Path(__file__).resolve()
 pasta_scripts = caminho_script.parent
@@ -45,16 +63,24 @@ col_uvr_media = df_medias.columns[2]
 col_media_s1 = df_medias.columns[4]
 col_media_s2 = df_medias.columns[12]
 
+# Trecho modificado para carregar todas as médias
 for _, row in df_medias.iterrows():
     municipio = row[col_municipio_media]
     uvr_nro = row[col_uvr_media]
     if pd.notna(municipio) and pd.notna(uvr_nro):
         chave = (normalizar_texto(str(municipio)), normalizar_uvr(str(uvr_nro)))
-        dados_medias[chave] = {
-            "media_s1": pd.to_numeric(row[col_media_s1], errors='coerce'),
-            "media_s2": pd.to_numeric(row[col_media_s2], errors='coerce')
-        }
+        dados_medias[chave] = {}  # Prepara para receber múltiplas variáveis
 
+        for nome_variavel, config in VARIAVEIS_ANALISE.items():
+            idx_s1 = col_to_idx(config["col_media_s1"])
+            idx_s2 = col_to_idx(config["col_media_s2"])
+            if nome_variavel not in dados_medias[chave]:
+                dados_medias[chave][nome_variavel] = {}
+            
+            dados_medias[chave][nome_variavel] = {
+                "media_s1": pd.to_numeric(row.iloc[idx_s1], errors='coerce'),
+                "media_s2": pd.to_numeric(row.iloc[idx_s2], errors='coerce')
+            }
 
 # Converte a data de referência para o formato "MM.AA"
 def converter_data_para_mes_ano(data_referencia):
@@ -71,13 +97,27 @@ def limpar_nome_aba(nome):
     return nome.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("[", "").replace("]", "")
 
 
+# Trecho modificado para carregar todos os valores enviados
 for _, row in df_input.iterrows():
     municipio = row['gm_nome']
     uvr_nro = row['guvr_numero']
     data_envio = row['data_de_envio']
     tc_uvr = row['nome_tc_uvr']  
     data_referencia = row['data_de_referencia']
-    valor_envio = pd.to_numeric(row[df_input.columns[6]], errors='coerce') 
+
+    # Pega os valores de todas as variáveis que queremos analisar
+    valores_enviados = {}
+    for nome_variavel, config in VARIAVEIS_ANALISE.items():
+        # Lida com o caso original (por índice) e os novos (por nome de coluna)
+        if "col_form_idx" in config:
+            coluna = df_input.columns[config["col_form_idx"]]
+        else:
+            coluna = config["col_form"]
+        
+        if coluna in row:
+            valores_enviados[nome_variavel] = pd.to_numeric(row[coluna], errors='coerce')
+        else:
+            valores_enviados[nome_variavel] = None
 
 
     if isinstance(municipio, str):
@@ -87,7 +127,6 @@ for _, row in df_input.iterrows():
 
     mes_ano = converter_data_para_mes_ano(data_referencia)
 
-    # Tenta formatar a data de envio
     if isinstance(data_envio, datetime):
         data_envio_formatada = data_envio.strftime("%d/%m/%Y")
     else:
@@ -96,7 +135,6 @@ for _, row in df_input.iterrows():
         except (ValueError, TypeError):
             data_envio_formatada = ""
 
-    # Agrupa dados por município + UVR + mês/ano
     chave = (municipio_uvr_normalizado, mes_ano)
     if chave in dados_atualizados:
         dados_atualizados[chave]["datas_envio"].append(data_envio_formatada)
@@ -109,7 +147,7 @@ for _, row in df_input.iterrows():
             "uvr_nro": uvr_nro,
             "mes_ano": mes_ano,
             "tc_uvr" : tc_uvr,
-            "valor_envio": valor_envio,
+            "valores_enviados": valores_enviados, # <<< AQUI ESTÁ A MUDANÇA PRINCIPAL
             "data_referencia_dt": pd.to_datetime(data_referencia, errors='coerce')
         }
 
@@ -501,20 +539,18 @@ for nome, wb in wb_final.items():
     aba_irregulares_final.freeze_panes = 'D1'
     aba_irregulares_final.auto_filter.ref = f"A1:G1"
 
-# --- Lógica para a Aba "Discrepantes" ---
+# --- Lógica para a Aba "Discrepantes" (Versão Matriz "Wide") ---
 for nome, wb in wb_final.items():
     print(f"Processando Discrepantes para '{nome}'...")
     if "Discrepantes" in wb.sheetnames:
         wb.remove(wb["Discrepantes"])
     ws_discrepantes = wb.create_sheet("Discrepantes")
 
-    # --- 1. Construção do cabeçalho #  ---
+    # --- 1. Construção do novo cabeçalho dinâmico ---
+    colunas_comuns = ["Regional", "Município", "UVR", "Técnico UVR", "Mês Referência", "Data de Envio"]
+    nomes_variaveis = list(VARIAVEIS_ANALISE.keys())
+    headers = colunas_comuns + nomes_variaveis
     
-    # Estilos de preenchimento
-    banded_row_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
-
-   
-    headers = ["Regional", "Município", "UVR", "Técnico UVR", "Mês Referência", "Data de Envio", "Receita Vendas", "Média Utilizada (R$)"]
     for col_num, header_text in enumerate(headers, start=1):
         cell = ws_discrepantes.cell(row=1, column=col_num, value=header_text)
         cell.fill = cabeçalho_fill
@@ -522,118 +558,129 @@ for nome, wb in wb_final.items():
         cell.border = bordas
         cell.alignment = alinhamento
 
-    # --- 2. Coleta de dados com a lógica de semestre ---
+    # --- 2. Nova lógica de coleta de dados ---
+    
+    # <<< CORREÇÃO AQUI >>> A linha abaixo foi readicionada.
     abas_mensais_existentes = set(wb.sheetnames)
+    
     discrepantes_data = []
 
-    
-    # Define o ano e semestre atuais uma vez, antes do loop
     hoje = datetime.today()
     ano_atual = hoje.year
     semestre_atual = 1 if 1 <= hoje.month <= 6 else 2
-   
     
+    # Loop 1: Itera sobre cada envio do formulário
     for chave_composta, info in dados_atualizados.items():
         municipio_uvr, mes_ano_envio = chave_composta
         if div_por_municipio.get(municipio_uvr) == nome and mes_ano_envio in abas_mensais_existentes:
-            chave_media = (normalizar_texto(info["municipio_original"]), normalizar_uvr(info["uvr_nro"]))
             data_ref = info.get("data_referencia_dt")
-            valor_envio = info.get("valor_envio")
+            if not pd.notna(data_ref): continue
 
-            
-            # Verifica se a data de referência é válida antes de prosseguir
-            if pd.notna(data_ref):
-                ano_ref = data_ref.year
-                semestre_ref = 1 if 1 <= data_ref.month <= 6 else 2
+            ano_ref = data_ref.year
+            semestre_ref = 1 if 1 <= data_ref.month <= 6 else 2
+            is_valid_semester = False
+            if semestre_atual == 1:
+                if (ano_ref == ano_atual and semestre_ref == 1) or (ano_ref == ano_atual - 1 and semestre_ref == 2): is_valid_semester = True
+            else: 
+                if ano_ref == ano_atual: is_valid_semester = True
+            if not is_valid_semester: continue
 
-                # Lógica para verificar se a data de referência está no semestre atual ou no anterior
-                is_valid_semester = False
-                if semestre_atual == 1:
-                    # Se estamos no 1º semestre, aceita envios do 1º semestre do ano atual
-                    # ou do 2º semestre do ano anterior.
-                    if (ano_ref == ano_atual and semestre_ref == 1) or \
-                       (ano_ref == ano_atual - 1 and semestre_ref == 2):
-                        is_valid_semester = True
-                else: # semestre_atual == 2
-                    # Se estamos no 2º semestre, aceita envios de ambos os semestres do ano atual.
-                    if ano_ref == ano_atual:
-                        is_valid_semester = True
+            tem_alguma_discrepancia = False
+            resultados_do_envio = {}
+
+            # Loop 2: Analisa todas as variáveis para o envio atual
+            for nome_variavel, config in VARIAVEIS_ANALISE.items():
+                chave_media = (normalizar_texto(info["municipio_original"]), normalizar_uvr(info["uvr_nro"]))
                 
-                # A verificação da discrepância só ocorre se o semestre for válido
-                if is_valid_semester and pd.notna(valor_envio) and chave_media in dados_medias:
-                    
-                    if semestre_atual == 2:
-                        # Se rodamos no 2º semestre, a lógica original funciona.
-                        media_ref = dados_medias[chave_media]["media_s1"] if semestre_ref == 1 else dados_medias[chave_media]["media_s2"]
-                    else:  # semestre_atual == 1
-                        # Se rodamos no 1º semestre, a lógica precisa ser INVERTIDA.
-                        media_ref = dados_medias[chave_media]["media_s2"] if semestre_ref == 1 else dados_medias[chave_media]["media_s1"]
-                   
-                    if pd.notna(media_ref) and media_ref > 0:
-                        desvio = abs((valor_envio - media_ref) / media_ref) * 100
-                        if desvio >= 40:
-                            discrepantes_data.append({
-                                "regional": regionais_por_municipio.get(municipio_uvr, ""),
-                                "municipio": info["municipio_original"],
-                                "uvr": info["uvr_nro"],
-                                "tc_uvr": info.get("tc_uvr", ""),
-                                "mes_ano": mes_ano_envio,
-                                "data_envio": info.get("datas_envio", [""])[0],
-                                "valor_envio": valor_envio,
-                                "desvio": desvio,
-                                "media": media_ref
-                            })
-       
+                valor_enviado = info["valores_enviados"].get(nome_variavel)
+                
+                resultados_do_envio[nome_variavel] = {"valor": "-", "desvio": 0}
 
-    # --- 3. Escrita dos dados com início na linha 2 ---
-    discrepantes_data.sort(key=lambda x: x["desvio"], reverse=True)
+                if chave_media in dados_medias and pd.notna(valor_enviado):
+                    medias_da_variavel = dados_medias[chave_media].get(nome_variavel)
+                    if medias_da_variavel:
+                        media_ref = 0
+                        if semestre_atual == 2:
+                            media_ref = medias_da_variavel["media_s1"] if semestre_ref == 1 else medias_da_variavel["media_s2"]
+                        else:
+                            media_ref = medias_da_variavel["media_s2"] if semestre_ref == 1 else medias_da_variavel["media_s1"]
+                        
+                        if pd.notna(media_ref) and media_ref != 0:
+                            desvio = abs((valor_enviado - media_ref) / media_ref) * 100
+                            if desvio >= 40:
+                                tem_alguma_discrepancia = True
+                                resultados_do_envio[nome_variavel] = {"valor": valor_enviado, "desvio": desvio}
+
+            if tem_alguma_discrepancia:
+                linha_de_dados = {
+                    "regional": regionais_por_municipio.get(municipio_uvr, ""),
+                    "municipio": info["municipio_original"],
+                    "uvr": info["uvr_nro"],
+                    "tc_uvr": info.get("tc_uvr", ""),
+                    "mes_ano": mes_ano_envio,
+                    "data_envio": info.get("datas_envio", [""])[0],
+                    "resultados": resultados_do_envio
+                }
+                discrepantes_data.append(linha_de_dados)
+
+    # --- 3. Nova lógica de escrita na planilha ---
+    discrepantes_data.sort(key=lambda x: (x["municipio"], x["uvr"], x["mes_ano"]), reverse=True)
+
+    mapa_colunas_variaveis = {nome_var: i + len(colunas_comuns) + 1 for i, nome_var in enumerate(nomes_variaveis)}
 
     for i, data in enumerate(discrepantes_data):
-        row_idx = i + 2 # Dados agora começam na linha 2
+        row_idx = i + 2 
         
-        linha = [
-            data["regional"], data["municipio"], data["uvr"], data["tc_uvr"],
-            data["mes_ano"], data["data_envio"],
-            data["valor_envio"],
-            data["media"]
-        ]
-
-        ws_discrepantes.cell(row=row_idx, column=8).number_format = 'R$ #,##0.00'
-
-        for col_idx, value in enumerate(linha, start=1):
-            cell = ws_discrepantes.cell(row=row_idx, column=col_idx, value=value)
+        # Preenche as colunas comuns
+        # Pequeno ajuste aqui para buscar as chaves corretas do dicionário 'data'
+        ws_discrepantes.cell(row=row_idx, column=1, value=data["regional"])
+        ws_discrepantes.cell(row=row_idx, column=2, value=data["municipio"])
+        ws_discrepantes.cell(row=row_idx, column=3, value=data["uvr"])
+        ws_discrepantes.cell(row=row_idx, column=4, value=data["tc_uvr"])
+        ws_discrepantes.cell(row=row_idx, column=5, value=data["mes_ano"])
+        ws_discrepantes.cell(row=row_idx, column=6, value=data["data_envio"])
+        
+        # Aplica estilo às colunas comuns
+        for col_idx in range(1, len(colunas_comuns) + 1):
+            ws_discrepantes.cell(row=row_idx, column=col_idx).border = bordas
+            ws_discrepantes.cell(row=row_idx, column=col_idx).alignment = alinhamento
+        
+        # Preenche as colunas de cada variável
+        for nome_variavel, config_col in mapa_colunas_variaveis.items():
+            resultado = data["resultados"][nome_variavel]
+            valor_a_escrever = resultado["valor"]
+            desvio_da_celula = resultado["desvio"]
+            
+            cell = ws_discrepantes.cell(row=row_idx, column=config_col, value=valor_a_escrever)
             cell.border = bordas
             cell.alignment = alinhamento
-        
-        # Formata a coluna de receita
-        receita_cell = ws_discrepantes.cell(row=row_idx, column=7)
-        receita_cell.number_format = '#,##0.00'
 
-        # Aplica a cor do desvio APENAS na célula de Receita Vendas
-        desvio_fill = None
-        if data["desvio"] >= 80: desvio_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
-        elif data["desvio"] >= 60: desvio_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
-        elif data["desvio"] >= 40: desvio_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
-        
-        if desvio_fill:
-            receita_cell.fill = desvio_fill
+            if isinstance(valor_a_escrever, (int, float)):
+                cell.number_format = '#,##0.00'
+
+            desvio_fill = None
+            if desvio_da_celula >= 80: desvio_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+            elif desvio_da_celula >= 60: desvio_fill = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
+            elif desvio_da_celula >= 40: desvio_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+            
+            if desvio_fill:
+                cell.fill = desvio_fill
 
     # Ajusta a largura das colunas
     for col_num in range(1, len(headers) + 1):
         col_letter = ws_discrepantes.cell(row=1, column=col_num).column_letter
         max_length = 0
-        # Percorre a partir da linha 1 para incluir o cabeçalho no cálculo da largura
         for row_num in range(1, ws_discrepantes.max_row + 1):
              cell_value = ws_discrepantes.cell(row=row_num, column=col_num).value
              if cell_value:
                  max_length = max(max_length, len(str(cell_value)))
-        adjusted_width = max_length + 5
+        adjusted_width = max_length + 10
         ws_discrepantes.column_dimensions[col_letter].width = adjusted_width
         
-    # Congela os painéis e define o filtro (ajustado para a linha 1)
     ws_discrepantes.freeze_panes = 'A2'
     if ws_discrepantes.max_row > 1:
-        ws_discrepantes.auto_filter.ref = f"A1:G{ws_discrepantes.max_row}"
+        last_col_letter = ws_discrepantes.cell(row=1, column=len(headers)).column_letter
+        ws_discrepantes.auto_filter.ref = f"A1:{last_col_letter}{ws_discrepantes.max_row}"
 
     
 
