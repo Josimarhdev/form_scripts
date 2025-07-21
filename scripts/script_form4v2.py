@@ -14,7 +14,7 @@ from utils import (
     normalizar_texto, normalizar_uvr, aplicar_estilo_status
 )
 
-# Adicione este dicionário ao seu código
+
 VARIAVEIS_ANALISE = {
     # Mantendo a variável original
     "Receita Vendas (R$)":         {"col_form_idx": 6, "col_media_s1": "E", "col_media_s2": "M"},
@@ -28,7 +28,7 @@ VARIAVEIS_ANALISE = {
     "Renda Média (R$)":            {"col_form": "renda_media", "col_media_s1": "L", "col_media_s2": "T"},
 }
 
-# Adicione esta função auxiliar também
+
 def col_to_idx(letra):
     return ord(letra.upper()) - ord('A')
 
@@ -63,7 +63,7 @@ col_uvr_media = df_medias.columns[2]
 col_media_s1 = df_medias.columns[4]
 col_media_s2 = df_medias.columns[12]
 
-# Trecho modificado para carregar todas as médias
+# carrega todas as médias
 for _, row in df_medias.iterrows():
     municipio = row[col_municipio_media]
     uvr_nro = row[col_uvr_media]
@@ -97,7 +97,7 @@ def limpar_nome_aba(nome):
     return nome.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("[", "").replace("]", "")
 
 
-# Trecho modificado para carregar todos os valores enviados
+# carrega todos os valores enviados
 for _, row in df_input.iterrows():
     municipio = row['gm_nome']
     uvr_nro = row['guvr_numero']
