@@ -542,14 +542,53 @@ for nome, wb in wb_final.items():
 # --- Lógica para a Aba "Discrepantes" (Versão Matriz "Wide") ---
 for nome, wb in wb_final.items():
     print(f"Processando Discrepantes para '{nome}'...")
+
+    # --- 1. Ler dados existentes da aba "Discrepantes" ---
+    dados_antigos_discrepantes = {}
+    caminho_aux = planilhas_auxiliares[nome]
+    wb_aux = load_workbook(caminho_aux)
+    if "Discrepantes" in wb_aux.sheetnames:
+        ws_antiga = wb_aux["Discrepantes"]
+        headers_antigos = [cell.value for cell in ws_antiga[1]]
+        
+        try:
+            col_municipio_idx = headers_antigos.index("Município")
+            col_uvr_idx = headers_antigos.index("UVR")
+            col_mes_ref_idx = headers_antigos.index("Mês Referência")
+            col_validado_idx = headers_antigos.index("Validado pelo Regional")
+            col_obs_idx = headers_antigos.index("Observações")
+            col_tecnico_idx = headers_antigos.index("Técnico UVR")       
+            col_data_envio_idx = headers_antigos.index("Data de Envio")
+        except ValueError:
+            print(f"Aviso: A aba 'Discrepantes' em '{caminho_aux}' não possui as colunas esperadas. Os dados de validação não serão migrados.")
+            col_municipio_idx = -1
+
+        if col_municipio_idx != -1:
+            for row in ws_antiga.iter_rows(min_row=2, values_only=True):
+                municipio = row[col_municipio_idx]
+                uvr = row[col_uvr_idx]
+                mes_ref = row[col_mes_ref_idx]
+                
+                if municipio and uvr and mes_ref:
+                    chave = (normalizar_texto(str(municipio)), normalizar_uvr(str(uvr)), str(mes_ref))
+                    
+                    dados_antigos_discrepantes[chave] = {
+                        "validado": row[col_validado_idx],
+                        "observacoes": row[col_obs_idx],
+                        "data_envio": row[col_data_envio_idx],
+                        "tecnico":row[col_tecnico_idx],
+                        "valores_antigos": {var: row[headers_antigos.index(var)] for var in VARIAVEIS_ANALISE.keys() if var in headers_antigos}
+                    }
+
+
     if "Discrepantes" in wb.sheetnames:
         wb.remove(wb["Discrepantes"])
     ws_discrepantes = wb.create_sheet("Discrepantes")
 
-    # --- 1. Construção do novo cabeçalho dinâmico ---
+    # --- 2. Construção do cabeçalho dinâmico ---
     colunas_comuns = ["Regional", "Município", "UVR", "Técnico UVR", "Mês Referência", "Data de Envio"]
     nomes_variaveis = list(VARIAVEIS_ANALISE.keys())
-    headers = colunas_comuns + nomes_variaveis
+    headers = colunas_comuns + nomes_variaveis + ["Validado pelo Regional", "Observações"]
     
     for col_num, header_text in enumerate(headers, start=1):
         cell = ws_discrepantes.cell(row=1, column=col_num, value=header_text)
@@ -558,18 +597,16 @@ for nome, wb in wb_final.items():
         cell.border = bordas
         cell.alignment = alinhamento
 
-    # --- 2. Nova lógica de coleta de dados ---
-    
-    # <<< CORREÇÃO AQUI >>> A linha abaixo foi readicionada.
+    # --- 3. lógica de coleta de dados ---
     abas_mensais_existentes = set(wb.sheetnames)
-    
     discrepantes_data = []
+    chaves_discrepantes_atuais = set()
 
     hoje = datetime.today()
     ano_atual = hoje.year
     semestre_atual = 1 if 1 <= hoje.month <= 6 else 2
     
-    # Loop 1: Itera sobre cada envio do formulário
+    # Loop 1: Itera sobre cada envio do formulário para encontrar discrepâncias atuais
     for chave_composta, info in dados_atualizados.items():
         municipio_uvr, mes_ano_envio = chave_composta
         if div_por_municipio.get(municipio_uvr) == nome and mes_ano_envio in abas_mensais_existentes:
@@ -591,12 +628,10 @@ for nome, wb in wb_final.items():
             # Loop 2: Analisa todas as variáveis para o envio atual
             for nome_variavel, config in VARIAVEIS_ANALISE.items():
                 chave_media = (normalizar_texto(info["municipio_original"]), normalizar_uvr(info["uvr_nro"]))
-                
                 valor_enviado = info["valores_enviados"].get(nome_variavel)
-                
                 resultados_do_envio[nome_variavel] = {"valor": "-", "desvio": 0}
 
-                if chave_media in dados_medias and pd.notna(valor_enviado):
+                if chave_media in dados_medias and pd.notna(valor_enviado) and valor_enviado != 0:
                     medias_da_variavel = dados_medias[chave_media].get(nome_variavel)
                     if medias_da_variavel:
                         media_ref = 0
@@ -607,11 +642,37 @@ for nome, wb in wb_final.items():
                         
                         if pd.notna(media_ref) and media_ref != 0:
                             desvio = abs((valor_enviado - media_ref) / media_ref) * 100
-                            if desvio >= 40:
+                            if desvio >= 60:
                                 tem_alguma_discrepancia = True
                                 resultados_do_envio[nome_variavel] = {"valor": valor_enviado, "desvio": desvio}
 
             if tem_alguma_discrepancia:
+                chave_atual = (normalizar_texto(info["municipio_original"]), normalizar_uvr(info["uvr_nro"]), mes_ano_envio)
+                chaves_discrepantes_atuais.add(chave_atual)
+
+                validado = "Não"
+                observacoes = ""
+
+             
+                novos_valores_discrepantes = {
+                    k: round(v['valor'], 2) for k, v in resultados_do_envio.items() 
+                    if v['desvio'] >= 60 and isinstance(v['valor'], (int, float))
+                }
+
+                if chave_atual in dados_antigos_discrepantes:
+                    dados_antigos = dados_antigos_discrepantes[chave_atual]
+                    observacoes = dados_antigos.get("observacoes", "") # Mantém as observações para referência
+                    
+                    antigos_valores_discrepantes = {
+                        k: round(v, 2) for k, v in dados_antigos["valores_antigos"].items()
+                        if isinstance(v, (int, float))
+                    }
+                    
+                    if antigos_valores_discrepantes == novos_valores_discrepantes:
+                        validado = dados_antigos.get("validado", "Não")
+                    # Se forem diferentes, 'validado' permanece "Não", indicando que precisa de re-validação.
+                
+
                 linha_de_dados = {
                     "regional": regionais_por_municipio.get(municipio_uvr, ""),
                     "municipio": info["municipio_original"],
@@ -619,33 +680,68 @@ for nome, wb in wb_final.items():
                     "tc_uvr": info.get("tc_uvr", ""),
                     "mes_ano": mes_ano_envio,
                     "data_envio": info.get("datas_envio", [""])[0],
-                    "resultados": resultados_do_envio
+                    "resultados": resultados_do_envio,
+                    "validado": validado,
+                    "observacoes": observacoes
                 }
                 discrepantes_data.append(linha_de_dados)
 
-    # --- 3. Nova lógica de escrita na planilha ---
+    # --- 4. Adicionar itens corrigidos ---
+    for chave_antiga, dados_antigos in dados_antigos_discrepantes.items():
+        if chave_antiga not in chaves_discrepantes_atuais and dados_antigos.get("validado") != "Corrigido":
+            municipio_norm, uvr_norm, mes_ano = chave_antiga
+            
+            mun_original = ""
+            uvr_original = ""
+            # Tenta encontrar o nome original do município e uvr
+            for k,v in div_por_municipio.items():
+                if k == f"{municipio_norm}_{uvr_norm}":
+                    # Busca nos dados atualizados para pegar o nome original
+                    for info in dados_atualizados.values():
+                        if normalizar_texto(info['municipio_original']) == municipio_norm and normalizar_uvr(info['uvr_nro']) == uvr_norm:
+                            mun_original = info['municipio_original']
+                            uvr_original = info['uvr_nro']
+                            break
+                    break
+            
+
+
+            discrepantes_data.append({
+                "regional": regionais_por_municipio.get(f"{municipio_norm}_{uvr_norm}", ""),
+                "municipio": mun_original or municipio_norm, # Fallback para o nome normalizado
+                "uvr": uvr_original or uvr_norm, # Fallback
+                "tc_uvr": dados_antigos.get("tecnico", ""),
+                "mes_ano": mes_ano,
+                "data_envio": dados_antigos.get("data_envio", ""),
+                "resultados": {nome_variavel: {"valor": dados_antigos["valores_antigos"].get(nome_variavel, "-"), "desvio": 0} for nome_variavel in VARIAVEIS_ANALISE.keys()},
+                "validado": "Corrigido",
+                "observacoes": dados_antigos.get("observacoes", "")
+            })
+
+
+    # --- 5. Nova lógica de escrita na planilha ---
     discrepantes_data.sort(key=lambda x: (x["municipio"], x["uvr"], x["mes_ano"]), reverse=True)
 
     mapa_colunas_variaveis = {nome_var: i + len(colunas_comuns) + 1 for i, nome_var in enumerate(nomes_variaveis)}
+    col_validado_idx = len(headers) - 1
+    col_obs_idx = len(headers)
 
     for i, data in enumerate(discrepantes_data):
         row_idx = i + 2 
         
-        # Preenche as colunas comuns
-        # Pequeno ajuste aqui para buscar as chaves corretas do dicionário 'data'
         ws_discrepantes.cell(row=row_idx, column=1, value=data["regional"])
         ws_discrepantes.cell(row=row_idx, column=2, value=data["municipio"])
         ws_discrepantes.cell(row=row_idx, column=3, value=data["uvr"])
         ws_discrepantes.cell(row=row_idx, column=4, value=data["tc_uvr"])
         ws_discrepantes.cell(row=row_idx, column=5, value=data["mes_ano"])
         ws_discrepantes.cell(row=row_idx, column=6, value=data["data_envio"])
-        
-        # Aplica estilo às colunas comuns
-        for col_idx in range(1, len(colunas_comuns) + 1):
+        ws_discrepantes.cell(row=row_idx, column=col_validado_idx, value=data["validado"])
+        ws_discrepantes.cell(row=row_idx, column=col_obs_idx, value=data["observacoes"])
+
+        for col_idx in list(range(1, len(colunas_comuns) + 1)) + [col_validado_idx, col_obs_idx]:
             ws_discrepantes.cell(row=row_idx, column=col_idx).border = bordas
             ws_discrepantes.cell(row=row_idx, column=col_idx).alignment = alinhamento
         
-        # Preenche as colunas de cada variável
         for nome_variavel, config_col in mapa_colunas_variaveis.items():
             resultado = data["resultados"][nome_variavel]
             valor_a_escrever = resultado["valor"]
@@ -660,11 +756,28 @@ for nome, wb in wb_final.items():
 
             desvio_fill = None
             if desvio_da_celula >= 80: desvio_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
-            elif desvio_da_celula >= 60: desvio_fill = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
-            elif desvio_da_celula >= 40: desvio_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+            elif desvio_da_celula >= 70: desvio_fill = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
+            elif desvio_da_celula >= 60: desvio_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
             
             if desvio_fill:
                 cell.fill = desvio_fill
+
+    # --- 6. Adicionar Dropdown e Formatação Condicional ---
+    if ws_discrepantes.max_row > 1:
+        dv_validacao = DataValidation(type="list", formula1='"Sim,Não,Corrigido"', allow_blank=True)
+        ws_discrepantes.add_data_validation(dv_validacao)
+        
+        range_validado = f"{ws_discrepantes.cell(row=2, column=col_validado_idx).column_letter}2:{ws_discrepantes.cell(row=ws_discrepantes.max_row, column=col_validado_idx).column_letter}{ws_discrepantes.max_row}"
+        dv_validacao.add(range_validado)
+
+        rule_sim = CellIsRule(operator='equal', formula=['"Sim"'], stopIfTrue=True, fill=validado_sim_fill)
+        rule_nao = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
+        rule_corrigido = CellIsRule(operator='equal', formula=['"Corrigido"'], stopIfTrue=True, fill=validado_sim_fill)
+
+        ws_discrepantes.conditional_formatting.add(range_validado, rule_sim)
+        ws_discrepantes.conditional_formatting.add(range_validado, rule_nao)
+        ws_discrepantes.conditional_formatting.add(range_validado, rule_corrigido)
+
 
     # Ajusta a largura das colunas
     for col_num in range(1, len(headers) + 1):
@@ -677,12 +790,75 @@ for nome, wb in wb_final.items():
         adjusted_width = max_length + 10
         ws_discrepantes.column_dimensions[col_letter].width = adjusted_width
         
-    ws_discrepantes.freeze_panes = 'A2'
+    ws_discrepantes.freeze_panes = 'D1'
     if ws_discrepantes.max_row > 1:
         last_col_letter = ws_discrepantes.cell(row=1, column=len(headers)).column_letter
         ws_discrepantes.auto_filter.ref = f"A1:{last_col_letter}{ws_discrepantes.max_row}"
 
     
+# ####ANALISE##################
+
+# # --- 4. ANÁLISE ESTATÍSTICA DOS DESVIOS POR INDICADOR ---
+
+# # Dicionário para armazenar a contagem de desvios em faixas distintas
+# analise_por_indicador = {
+#     nome_var: {
+#         'faixa_60_a_70': 0,  # Desvios no intervalo [60%, 70%)
+#         'faixa_70_a_80': 0,  # Desvios no intervalo [70%, 80%)
+#         'faixa_80_mais': 0   # Desvios no intervalo [80%, infinito)
+#     } for nome_var in VARIAVEIS_ANALISE.keys()
+# }
+
+# # Loop para popular as contagens
+# for data in discrepantes_data:
+#     resultados = data.get("resultados", {})
+#     for nome_variavel, resultado in resultados.items():
+#         desvio = resultado.get("desvio", 0)
+
+#         # Classifica o desvio em uma das três faixas
+#         if desvio >= 80:
+#             analise_por_indicador[nome_variavel]['faixa_80_mais'] += 1
+#         elif desvio >= 70:
+#             analise_por_indicador[nome_variavel]['faixa_70_a_80'] += 1
+#         elif desvio >= 60:
+#             analise_por_indicador[nome_variavel]['faixa_60_a_70'] += 1
+
+# # --- 5. EXIBIÇÃO DOS RESULTADOS NO TERMINAL ---
+
+# # --- 5. EXIBIÇÃO DOS RESULTADOS NO TERMINAL (VERSÃO COM FAIXAS EXCLUSIVAS) ---
+
+# print("\n\n" + "="*70)
+# print("--- ANÁLISE PERCENTUAL DE DESVIOS POR FAIXA EXCLUSIVA ---")
+# print("="*70)
+
+# # Loop para calcular e imprimir os resultados de cada indicador
+# for nome_variavel, contagens in analise_por_indicador.items():
+    
+#     # Contagens por faixa (estas são as 'fatias' exclusivas)
+#     casos_60_a_70 = contagens['faixa_60_a_70']
+#     casos_70_a_80 = contagens['faixa_70_a_80']
+#     casos_80_mais = contagens['faixa_80_mais']
+    
+#     # Total de discrepâncias para este indicador
+#     total_discrepancias = casos_60_a_70 + casos_70_a_80 + casos_80_mais
+
+#     print(f"\n▶ INDICADOR: {nome_variavel}")
+    
+#     if total_discrepancias > 0:
+#         # Cálculo dos percentuais para cada faixa exclusiva
+#         perc_80_mais = (casos_80_mais / total_discrepancias) * 100
+#         perc_70_a_80 = (casos_70_a_80 / total_discrepancias) * 100
+#         perc_60_a_70 = (casos_60_a_70 / total_discrepancias) * 100
+
+#         print(f"  Total de discrepâncias (desvio >= 60%): {total_discrepancias} casos.")
+#         print("-" * 50)
+#         print(f"  - Faixa >= 80%:".ljust(35) + f"{casos_80_mais} casos ({perc_80_mais:.2f}%)")
+#         print(f"  - Faixa entre 70% e 79.9%:".ljust(35) + f"{casos_70_a_80} casos ({perc_70_a_80:.2f}%)")
+#         print(f"  - Faixa entre 60% e 69.9%:".ljust(35) + f"{casos_60_a_70} casos ({perc_60_a_70:.2f}%)")
+#     else:
+#         print("  - Nenhuma discrepância encontrada.")
+
+# print("\n" + "="*70)
 
 # Salva os novos arquivos com nome atualizado
 for nome, wb in wb_final.items():
