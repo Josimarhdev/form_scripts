@@ -127,6 +127,19 @@ for nome, caminho in planilhas_auxiliares.items():
 
         # Se foi enviado, atualiza status e data com os dados atualizados do drive
         if municipio_uvr_normalizado in dados_atualizados:
+               
+            # 1. Contar o número de datas de envio na planilha anterior (coluna F, índice 5)
+            datas_antigas_str = row[5] if row[5] and isinstance(row[5], str) else ""
+            # Conta as datas separadas por vírgula, ignorando entradas vazias resultantes do split
+            num_datas_antigas = len([data for data in datas_antigas_str.split(',') if data.strip()])
+
+            # 2. Contar o número de novas datas de envio a partir dos dados atualizados
+            num_datas_novas = len(dados_atualizados[municipio_uvr_normalizado]["datas"])
+
+            # 3. Se o número de datas aumentou, marcar "Validado pelo Regional" (coluna G, índice 6) como "Não"
+            if num_datas_novas > num_datas_antigas:
+                row_data[6] = "Não"  # Altera o valor na lista de dados da linha atual
+            
             print('deu certo')
             novas_datas = ", ".join(dados_atualizados[municipio_uvr_normalizado]["datas"])
             novo_status = dados_atualizados[municipio_uvr_normalizado]["status"]

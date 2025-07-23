@@ -271,6 +271,18 @@ for nome, caminho in planilhas_auxiliares.items():
 
                 # Atualiza dados conforme a planilha principal
                 if chave_busca in dados_atualizados:
+
+                    # 1. Contar o número de datas de envio na planilha anterior (coluna F, índice 5)
+                    datas_antigas_str = row[5] if row[5] and isinstance(row[5], str) else ""
+                    num_datas_antigas = len([data for data in datas_antigas_str.split(',') if data.strip()])
+
+                    # 2. Contar o número de novas datas de envio a partir dos dados do CSV
+                    num_datas_novas = len(dados_atualizados[chave_busca]["datas_envio"])
+
+                    # 3. Se o número de datas aumentou, marcar "Validado pelo Regional" (coluna G, índice 6) como "Não"
+                    if num_datas_novas > num_datas_antigas:
+                        row_data[6] = "Não"
+                    
                     row_data[5] = ", ".join(dados_atualizados[chave_busca]["datas_envio"])
                     row_data[4] = dados_atualizados[chave_busca]["status"]
                 elif not tem_envio_existente:
