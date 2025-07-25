@@ -10,6 +10,27 @@ Este repositório contém uma coleção de formulários e scripts associados à 
 - `outputs/`: Contém os arquivos de saída dos formulários 1, 2, 3 e 4.
 - `scripts/`: Inclui os scripts utilizados para atualização dos formulários.
 
+## Descrição das Colunas das Planilhas
+
+Algumas colunas nas planilhas auxiliares e nos formulários possuem funcionalidades específicas para acompanhamento do status e controle interno dos envios. Abaixo estão descritas as principais:
+
+- **Situação**: Indica o status do envio . Os valores podem incluir, por exemplo:
+  - `Enviado`: quando há registro de envio no período.
+  - `Atrasado`: quando não houve envio no mês anterior ao atual.
+  - `Atrasado >= 2`: quando não houve envio por dois meses consecutivos ou mais.
+
+- **Data de Envio**: Informa as datas de envio atreladas aquele município/UVR.
+
+- **Validado pelo Regional**: Campo utilizado para que os regionais confirmem se a informação do envio está correta. Pode ser preenchido manualmente como `Sim`, `Não`.
+
+- **Observações**: Campo livre para anotações específicas sobre o envio, como pendências, informações incorretas ou qualquer outra informação relevante.
+
+- **Formulários para Deletar (ID)**: Lista de IDs de formulários que foram enviados de forma indevida ou duplicada e que devem ser desconsiderados ou removidos da base.
+
+- **Validado Equip de TI**: Indica se o envio foi verificado pela equipe de TI. Serve como uma camada adicional de conferência técnica.
+
+- **Resposta Equipe de TI**: Campo para que a equipe de TI registre sua análise.
+
 
 ## Tecnologias Utilizadas
 
@@ -88,7 +109,8 @@ inputs/
 ├── form1.csv
 ├── form2.csv
 ├── form3.csv
-└── form4.csv
+├── form4.csv
+└── form4-médias.csv
 ```
 
 4. **Acesse o diretório dos scripts:**
