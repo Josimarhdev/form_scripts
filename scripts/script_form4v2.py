@@ -732,7 +732,7 @@ for nome, wb in wb_final.items():
 
 
     # --- 5. Nova lógica de escrita na planilha ---
-    discrepantes_data.sort(key=lambda x: (x["municipio"], x["uvr"], x["mes_ano"]))
+    discrepantes_data.sort(key=lambda x: (x["municipio"], x["uvr"], x["mes_ano"])) #ordenação
 
     mapa_colunas_variaveis = {nome_var: i + len(colunas_comuns) + 1 for i, nome_var in enumerate(nomes_variaveis)}
     col_validado_idx = len(headers) - 1
@@ -740,6 +740,18 @@ for nome, wb in wb_final.items():
 
     for i, data in enumerate(discrepantes_data):
         row_idx = i + 2 
+
+        # Passo 1: Obter o nome da regional da linha de dados atual
+        nome_da_regional = data["regional"]
+        
+        # Passo 2: Escreve o valor na célula e guarda a referência da célula
+        cell_regional = ws_discrepantes.cell(row=row_idx, column=1, value=nome_da_regional)
+
+        # Passo 3: Busca a cor no dicionário e aplica o preenchimento
+        cor_hex = cores_regionais.get(nome_da_regional) 
+        if cor_hex:
+            fill_regional = PatternFill(start_color=cor_hex, end_color=cor_hex, fill_type="solid")
+            cell_regional.fill = fill_regional
         
         ws_discrepantes.cell(row=row_idx, column=1, value=data["regional"])
         ws_discrepantes.cell(row=row_idx, column=2, value=data["municipio"])
