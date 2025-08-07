@@ -286,7 +286,7 @@ for nome, caminho in planilhas_auxiliares.items():
                     row_data[5] = ", ".join(dados_atualizados[chave_busca]["datas_envio"])
                     row_data[4] = dados_atualizados[chave_busca]["status"]
                 elif not tem_envio_existente:
-                    if situacao_atual not in ("UVR Sem Técnico", "Outras Ocorrências"):
+                    if situacao_atual not in ("Sem Técnico", "Outras Ocorrências"):
                         try:
                             aba_mes, aba_ano = map(int, mes_ano_aux.split("."))
                             aba_ano += 2000
