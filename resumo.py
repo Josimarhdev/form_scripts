@@ -3,8 +3,8 @@ import re
 import os
 from datetime import datetime
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill
 from openpyxl.styles import PatternFill, Font, Border, Side, Alignment
+
 
 
 def processar_planilhas_excel():
@@ -19,7 +19,7 @@ def processar_planilhas_excel():
     arquivo_form4 = os.path.join(caminho_dos_arquivos, 'grs_atualizado_form4.xlsx')
 
     try:
-        # Carregar os arquivos Excel usando o caminho completo
+        # Carregar os arquivos Excel 
         xls_geral = pd.ExcelFile(arquivo_geral)
         xls_form4 = pd.ExcelFile(arquivo_form4)
     except FileNotFoundError as e:
@@ -135,9 +135,11 @@ def processar_planilhas_excel():
 
     return all_uvrs
 
+
+
 def criar_planilha_final(df):
     """
-    Cria a planilha Excel final com os dados de engajamento e formatação de cores.
+    Cria a planilha Excel final com os dados de engajamento e formatação avançada.
     """
     if df is None:
         print("Nenhum dado para processar. A planilha não foi criada.")
@@ -147,46 +149,103 @@ def criar_planilha_final(df):
     ws = wb.active
     ws.title = "Engajamento GRS"
 
+   
     green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
     yellow_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+    
+    # Estilização do Cabeçalho
+    header_fill = PatternFill(start_color="003366", end_color="003366", fill_type="solid") # Azul escuro
+    header_font = Font(color="FFFFFF", bold=True, name='Arial', size=11) # <-- CORRIGIDO: Fonte branca, Arial, negrito
 
+    # Estilos Gerais
+    thin_border = Border(left=Side(style='thin'), 
+                         right=Side(style='thin'), 
+                         top=Side(style='thin'), 
+                         bottom=Side(style='thin'))
+    
+    center_alignment = Alignment(horizontal='center', vertical='center')
+
+    # --- Criação da header ---
     headers = ['Regional', 'Municipio', 'UVR', 'Form 1', 'Form 2', 'Form 3', 'Form 4 2024', 'Form 4 2025', 'Nível de Engajamento']
     ws.append(headers)
-    
+
+
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font 
+        cell.border = thin_border
+        cell.alignment = center_alignment
+
+    # --- Adição e Formatação dos Dados ---
     for _, row in df.iterrows():
-        ws.append([
-            row['Regional'], row['Municipio'], row['UVR'], 
-            'Enviado' if row['Form 1'] == 1 else 'Ausente',
-            'Enviado' if row['Form 2'] == 1 else 'Ausente',
-            'Enviado' if row['Form 3'] == 1 else 'Ausente',
+        form1_status = 'Enviado' if row['Form 1'] == 1 else 'Ausente'
+        form2_status = 'Enviado' if row['Form 2'] == 1 else 'Ausente'
+        form3_status = 'Enviado' if row['Form 3'] == 1 else 'Ausente'
+        
+        data_row = [
+            row['Regional'], row['Municipio'], row['UVR'],
+            form1_status, form2_status, form3_status,
             row['Form 4 2024'], row['Form 4 2025'],
             row['Engagement Level']
-        ])
+        ]
+        ws.append(data_row)
         
+        current_row_index = ws.max_row
+        
+        # Aplicar estilo base (borda e alinhamento) a todas as células da nova linha.
+        for cell in ws[current_row_index]:
+            cell.border = thin_border
+            cell.alignment = center_alignment
+
+        # Aplicar cores específicas, que irão sobrescrever apenas o preenchimento.
+        # Coluna D (Form 1)
+        cell_form1 = ws.cell(row=current_row_index, column=4)
+        cell_form1.fill = green_fill if form1_status == 'Enviado' else red_fill
+
+        # Coluna E (Form 2)
+        cell_form2 = ws.cell(row=current_row_index, column=5)
+        cell_form2.fill = green_fill if form2_status == 'Enviado' else red_fill
+
+        # Coluna F (Form 3)
+        cell_form3 = ws.cell(row=current_row_index, column=6)
+        cell_form3.fill = green_fill if form3_status == 'Enviado' else red_fill
+
+        # Coluna I (Nível de Engajamento)
+        level_cell = ws.cell(row=current_row_index, column=9)
         level = row['Engagement Level']
-        fill = None
         if level == 'Alto':
-            fill = green_fill
+            level_cell.fill = green_fill
         elif level == 'Médio':
-            fill = yellow_fill
+            level_cell.fill = yellow_fill
         else: # Baixo
-            fill = red_fill
-            
-        if fill:
-            for cell in ws[ws.max_row]:
-                cell.fill = fill
-    
+            level_cell.fill = red_fill
+
+    # --- Ajuste da Largura das Colunas ---
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+
+    # --- Salvamento do Arquivo ---
     output_filename = "analise_engajamento.xlsx"
     wb.save(output_filename)
     print(f"\nPlanilha '{output_filename}' gerada com sucesso!")
     print(f"O arquivo foi salvo em: {os.path.abspath(output_filename)}")
+
 
 # --- Execução Principal ---
 if __name__ == "__main__":
     df_final = processar_planilhas_excel()
     if df_final is not None:
         criar_planilha_final(df_final[[
-            'Regional', 'Municipio', 'UVR', 'Form 1', 'Form 2', 'Form 3', 
+            'Regional', 'Municipio', 'UVR', 'Form 1', 'Form 2', 'Form 3',
             'Form 4 2024', 'Form 4 2025', 'Engagement Level'
         ]])
