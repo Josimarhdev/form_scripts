@@ -8,10 +8,8 @@ from openpyxl.styles import PatternFill, Font, Border, Side, Alignment
 
 
 def processar_planilhas_excel():
-    """
-    Processa os arquivos Excel de um caminho específico para analisar o engajamento.
-    """
-    # Caminho para a pasta onde os arquivos Excel estão localizados
+
+  
     caminho_dos_arquivos = '/home/josimar/Área de Trabalho/pull4/outputs/'
     
     # Nomes dos arquivos
@@ -27,7 +25,7 @@ def processar_planilhas_excel():
         print(f"Verifique se o caminho '{caminho_dos_arquivos}' e os nomes dos arquivos estão corretos.")
         return None
 
-    # Ler as abas de formulários e monitoramento
+    # Ler as abas 
     try:
         form1 = pd.read_excel(xls_geral, sheet_name='Form 1 - Município')
         form2 = pd.read_excel(xls_geral, sheet_name='Form 2 - UVR')
@@ -139,7 +137,7 @@ def processar_planilhas_excel():
 
 def criar_planilha_final(df):
     """
-    Cria a planilha Excel final com os dados de engajamento e formatação avançada.
+    Cria a planilha Excel final com os dados de engajamento e formatação .
     """
     if df is None:
         print("Nenhum dado para processar. A planilha não foi criada.")
@@ -198,7 +196,7 @@ def criar_planilha_final(df):
             cell.border = thin_border
             cell.alignment = center_alignment
 
-        # Aplicar cores específicas, que irão sobrescrever apenas o preenchimento.
+        # Aplicar cores específicas
         # Coluna D (Form 1)
         cell_form1 = ws.cell(row=current_row_index, column=4)
         cell_form1.fill = green_fill if form1_status == 'Enviado' else red_fill
@@ -234,7 +232,7 @@ def criar_planilha_final(df):
         adjusted_width = (max_length + 2)
         ws.column_dimensions[column].width = adjusted_width
 
-    # --- Salvamento do Arquivo ---
+  
     output_filename = "analise_engajamento.xlsx"
     wb.save(output_filename)
     print(f"\nPlanilha '{output_filename}' gerada com sucesso!")
