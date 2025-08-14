@@ -140,7 +140,7 @@ def criar_planilha_final(df, expected_2024, expected_2025): # ALTERAÇÃO: Receb
     green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
     greenS_fill = PatternFill(start_color="006400", end_color="006400", fill_type="solid")
     yellow_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
-    yellowS_fill = PatternFill(start_color="FFEE58", end_color="FFEE58", fill_type="solid")
+    yellowS_fill = PatternFill(start_color="FFB300", end_color="FFB300", fill_type="solid")
     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
     redS_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
     white_fill = Font(color="FFFFFF", name='Arial', size=11)
