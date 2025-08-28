@@ -46,7 +46,6 @@ id,municipio,data_envio
 103,Lapa,2025-03-18 15:02:44.112
 24,Iracema do Oeste,2025-03-18 16:11:16.215
 14,Diamante D'Oeste,2025-03-19 15:51:43.945
-102,Palmital,2025-03-19 16:41:49.308
 52,Três Barras do Paraná,2025-03-20 11:23:44.128
 81,São João do Ivaí,2025-03-20 11:43:21.139
 44,Santa Tereza do Oeste,2025-03-20 13:48:50.212
@@ -77,8 +76,6 @@ id,municipio,data_envio
 93,Rio Branco do Sul,2025-04-01 16:21:51.722
 21,Guaraniaçu,2025-04-02 14:16:49.620
 30,Matelândia,2025-04-02 16:04:48.018
-50,Terra Roxa,2025-04-03 14:39:35.000
-50,Terra Roxa,2025-04-04 08:03:56.102
 68,Castro,2025-04-04 10:07:31.647
 25,Itaipulândia,2025-04-04 15:16:05.253
 41,Ramilândia,2025-04-07 09:15:12.598
@@ -87,11 +84,7 @@ id,municipio,data_envio
 5,Braganey,2025-04-10 09:25:59.307
 10,Cascavel,2025-04-10 14:45:42.807
 94,Salgado Filho,2025-04-14 16:45:39.709
-50,Terra Roxa,2025-04-15 07:44:39.030
-50,Terra Roxa,2025-04-15 10:22:08.194
 17,Formosa do Oeste,2025-04-15 10:38:37.459
-50,Terra Roxa,2025-04-15 11:31:12.029
-50,Terra Roxa,2025-04-15 14:06:35.926
 35,Nova Aurora,2025-04-16 14:23:42.648
 47,São Miguel do Iguaçu,2025-04-22 09:17:11.439
 42,Santa Helena,2025-04-25 11:19:56.860
@@ -109,3 +102,6 @@ id,municipio,data_envio
 16,Entre Rios do Oeste,2025-08-05 14:50:20.056
 34,Mundo Novo,2025-08-06 13:06:53.479
 18,Foz do Iguaçu,2025-08-08 10:49:20.531
+11,Catanduvas,2025-08-12 11:05:36.931
+68,Castro,2025-08-18 15:33:50.325
+38,Palotina,2025-08-21 09:20:16.352
