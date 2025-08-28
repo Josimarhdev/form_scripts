@@ -731,7 +731,7 @@ for nome, wb in wb_final.items():
             })
 
 
-    # --- 5. Nova lógica de escrita na planilha ---
+    # --- 5. lógica de escrita na planilha ---
     discrepantes_data.sort(key=lambda x: (x["municipio"], x["uvr"], x["mes_ano"])) #ordenação
 
     mapa_colunas_variaveis = {nome_var: i + len(colunas_comuns) + 1 for i, nome_var in enumerate(nomes_variaveis)}

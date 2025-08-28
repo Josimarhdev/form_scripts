@@ -23,7 +23,7 @@ def processar_planilhas_excel():
     except FileNotFoundError as e:
         print(f"Erro: Arquivo não encontrado.")
         print(f"Verifique se o caminho '{caminho_dos_arquivos}' e os nomes dos arquivos estão corretos.")
-        return None, None, None # ALTERAÇÃO: Retornar None para os 3 valores
+        return None, None, None 
 
     try:
         form1 = pd.read_excel(xls_geral, sheet_name='Form 1 - Município')
@@ -32,7 +32,7 @@ def processar_planilhas_excel():
         monitoramento = pd.read_excel(xls_geral, sheet_name='Monitoramento')
     except ValueError as e:
         print(f"Erro ao ler uma das abas: {e}. Verifique se os nomes das abas estão corretos.")
-        return None, None, None # ALTERAÇÃO: Retornar None para os 3 valores
+        return None, None, None 
 
     monitoramento.columns = [
         'Regional', 'Municípios', 'UVR', 'Form 1 - Município', 'Form 2 - UVR',
@@ -97,7 +97,7 @@ def processar_planilhas_excel():
             except Exception as e:
                 print(f"Aviso: Não foi possível ler ou processar a aba '{sheet_name}'. Erro: {e}")
 
-    # ALTERAÇÃO: Mantém a contagem como número inteiro
+
     all_uvrs['Form 4 2024'] = all_uvrs.apply(lambda row: submissions_2024.get((row['Municipio'], row['UVR']), 0), axis=1)
     all_uvrs['Form 4 2025'] = all_uvrs.apply(lambda row: submissions_2025.get((row['Municipio'], row['UVR']), 0), axis=1)
 
@@ -119,13 +119,13 @@ def processar_planilhas_excel():
 
     all_uvrs['Engagement Level'] = all_uvrs['Engagement'].apply(get_engagement_level)
     
-    # ALTERAÇÃO: REMOVIDAS as linhas que formatavam para "X de Y".
+   
     
-    # ALTERAÇÃO: Retorna o DataFrame e os valores esperados
+    #Retorna o DataFrame e os valores esperados
     return all_uvrs, expected_2024, expected_2025
 
 
-def criar_planilha_final(df, expected_2024, expected_2025): # ALTERAÇÃO: Recebe novos argumentos
+def criar_planilha_final(df, expected_2024, expected_2025): 
     """
     Cria a planilha Excel final com os dados de engajamento e formatação.
     """
@@ -154,11 +154,10 @@ def criar_planilha_final(df, expected_2024, expected_2025): # ALTERAÇÃO: Receb
                          bottom=Side(style='thin'))
     
     center_alignment = Alignment(horizontal='center', vertical='center')
-    # ALTERAÇÃO: Novo alinhamento para o cabeçalho com quebra de texto
+    # alinhamento para o cabeçalho com quebra de texto
     header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
     # --- Criação da header ---
-    # ALTERAÇÃO: Cabeçalhos dinâmicos com quebra de linha
     headers = [
         'Regional', 'Municipio', 'UVR', 'Form 1', 'Form 2', 'Form 3',
         f'Form 4 2024\n(Esperado: {expected_2024})',
@@ -171,7 +170,7 @@ def criar_planilha_final(df, expected_2024, expected_2025): # ALTERAÇÃO: Receb
         cell.fill = header_fill
         cell.font = header_font 
         cell.border = thin_border
-        cell.alignment = header_alignment # ALTERAÇÃO: Usa o novo alinhamento
+        cell.alignment = header_alignment 
 
     # --- Adição e Formatação dos Dados ---
     for _, row in df.iterrows():
@@ -246,11 +245,11 @@ def criar_planilha_final(df, expected_2024, expected_2025): # ALTERAÇÃO: Receb
 
 # --- Execução Principal ---
 if __name__ == "__main__":
-    # ALTERAÇÃO: Captura os 3 valores retornados
+    # Captura os 3 valores retornados
     df_final, exp_2024, exp_2025 = processar_planilhas_excel()
     
     if df_final is not None:
-        # ALTERAÇÃO: Passa os valores esperados para a função de criação da planilha
+        # Passa os valores esperados para a função de criação da planilha
         criar_planilha_final(
             df_final[[
                 'Regional', 'Municipio', 'UVR', 'Form 1', 'Form 2', 'Form 3',
