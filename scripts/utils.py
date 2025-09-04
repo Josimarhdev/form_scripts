@@ -22,6 +22,7 @@ cores_regionais = {
     "Gabriel": "A9C5E6",
     "Bianca": "FFFF99",
     "Valquiria": "B2FFFF",
+    "Valquíria": "B2FFFF",
     "Luana": "FFCCFF",
     "Larissa": "F1E0C6",
     "Paranavaí": "9B59B6",
