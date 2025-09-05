@@ -2,7 +2,7 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.worksheet.datavalidation import DataValidation
 from pathlib import Path
-from openpyxl.styles import PatternFill 
+from openpyxl.styles import PatternFill
 
 
 try:
@@ -38,7 +38,8 @@ def gerar_planilha_estilizada(df, nome_convenio):
     ws = wb.active
     ws.title = "Monitoramento"
     
-    colunas_finais = ['Regional', 'Município', 'UVR', 'Situação', 'Data de Envio']
+    # Ordem das colunas e nome alterados
+    colunas_finais = ['Município', 'UVR', 'Quem preencheu', 'Situação', 'Data de Envio']
 
     dv_status = DataValidation(type="list", formula1='"Enviado,Não Enviado"', allow_blank=True)
     ws.add_data_validation(dv_status)
@@ -60,14 +61,11 @@ def gerar_planilha_estilizada(df, nome_convenio):
             if col_name == 'Situação':
                 dv_status.add(cell)
 
-            if col_name == 'Regional':
-                hex_color = cores_regionais.get(row_data[col_name])
-                if hex_color:
-                    # Cria o objeto PatternFill na hora, antes de aplicar na célula
-                    cell.fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type="solid")
+            # Bloco de código que coloria a célula da regional foi REMOVIDO
     
+    # Loop para colorir "Situação" foi ajustado para a nova posição da coluna (coluna 4)
     for row in range(2, ws.max_row + 1):
-        status_cell = ws.cell(row=row, column=4)
+        status_cell = ws.cell(row=row, column=4) # Coluna D é a 4ª coluna
         status = status_cell.value
         
         if status == "Enviado":
@@ -87,7 +85,7 @@ def gerar_planilha_estilizada(df, nome_convenio):
             except: pass
         ws.column_dimensions[column_letter].width = max_length + 5
 
-    ws.column_dimensions['B'].width = 35
+    ws.column_dimensions['A'].width = 35 # A coluna A agora é 'Município'
     ws.freeze_panes = 'A2'
 
     caminho_saida = pasta_outputs / f"{nome_convenio}_formA.xlsx"
@@ -110,9 +108,11 @@ for convenio, caminho in caminhos_csv.items():
         continue
 
     df = pd.read_csv(caminho, dtype=str).fillna('---')
-    df.rename(columns={'regional': 'Regional', 'municipio': 'Município', 'uvr': 'UVR', 'data_envio': 'Data de Envio'}, inplace=True)
+    # Renomeando a coluna 'regional' para 'Quem preencheu'
+    df.rename(columns={'regional': 'Quem preencheu', 'municipio': 'Município', 'uvr': 'UVR', 'data_envio': 'Data de Envio'}, inplace=True)
     
-    df['Regional'] = df['Regional'].apply(lambda x: x.split(' ')[0])
+    # Linha que encurtava o nome da regional foi REMOVIDA
+    # df['Regional'] = df['Regional'].apply(lambda x: x.split(' ')[0])
 
     df['Situação'] = df['Data de Envio'].apply(lambda x: 'Não Enviado' if str(x).strip() in ['---', ''] else 'Enviado')
 
@@ -124,7 +124,8 @@ for convenio, caminho in caminhos_csv.items():
             return data
     df['Data de Envio'] = df['Data de Envio'].apply(formatar_data)
     
-    df_final = df[['Regional', 'Município', 'UVR', 'Situação', 'Data de Envio']]
+    # Definindo a ordem final das colunas no DataFrame
+    df_final = df[['Município', 'UVR', 'Quem preencheu', 'Situação', 'Data de Envio']]
     
     gerar_planilha_estilizada(df_final, convenio)
 
