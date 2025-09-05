@@ -1,54 +1,86 @@
 import pandas as pd
 from openpyxl import Workbook
+# NOVO: Importações para Formatação Condicional e Estilos Diferenciais
+from openpyxl.formatting.rule import Rule
+from openpyxl.styles import PatternFill, Font
+from openpyxl.styles.differential import DifferentialStyle
 from openpyxl.worksheet.datavalidation import DataValidation
 from pathlib import Path
-from openpyxl.styles import PatternFill
+import unicodedata
 
-# Tenta importar as configurações de estilo do arquivo utils.py
+
 try:
     from utils import (
         cabeçalho_fill, cabeçalho_font, enviado_fill, enviado_font,
         atrasado_fill, cores_regionais, bordas, alinhamento
     )
+
+    try:
+        from utils import nao_possui_fill, nao_possui_font
+    except ImportError:
+        print("AVISO: Estilos 'nao_possui_fill' e 'nao_possui_font' não encontrados em utils.py.")
+        print("Usando estilos padrão (cinza).")
+        nao_possui_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+        nao_possui_font = Font(name='Calibri', size=11, bold=False, color="000000")
+
 except ImportError:
     print("ERRO: O arquivo 'utils.py' não foi encontrado na pasta 'scripts'.")
     print("Por favor, certifique-se de que o seu arquivo utils.py está no lugar certo.")
     exit()
 
-# --- CONFIGURAÇÃO DE CAMINHOS ---
+
 caminho_script = Path(__file__).resolve()
 pasta_scripts = caminho_script.parent
 pasta_inputs = pasta_scripts.parent / "inputs"
 pasta_outputs = pasta_scripts.parent / "outputs"
 pasta_outputs.mkdir(exist_ok=True)
 
-# Dicionário com os caminhos para os arquivos CSV do Formulário B
+
 caminhos_csv_formB = {
     "belem": pasta_inputs / "formB-belém.csv",
     "expansao": pasta_inputs / "formB-expansão.csv",
     "grs": pasta_inputs / "formB-grs.csv"
 }
 
-# --- FUNÇÃO DE GERAÇÃO DA PLANILHA ---
 
+caminhos_regionais_xlsx = {
+    "belem": pasta_inputs / "0 - Belém" / "0 - Monitoramento Form 4.xlsx",
+    "expansao": pasta_inputs / "0 - Expansão" / "0 - Monitoramento Form 4.xlsx",
+    "grs": pasta_inputs / "0 - GRS II" / "0 - Monitoramento Form 4.xlsx"
+}
+
+# --- FUNÇÕES AUXILIARES --- 
+def normalizar_texto(texto: str) -> str:
+    if not isinstance(texto, str):
+        return texto
+    texto_sem_acento = ''.join(
+        c for c in unicodedata.normalize('NFD', texto)
+        if unicodedata.category(c) != 'Mn'
+    )
+    return texto_sem_acento.lower().strip()
+
+def formatar_data(data):
+    if str(data).strip() in ['---', '']:
+        return '---'
+    try:
+        return pd.to_datetime(data, dayfirst=True).strftime('%d/%m/%Y')
+    except (ValueError, TypeError):
+        return data
+
+# --- FUNÇÃO DE GERAÇÃO DA PLANILHA --- 
 def gerar_planilha_estilizada_formB(df, nome_convenio):
-    """
-    Gera uma planilha Excel estilizada para o Formulário B.
-    """
     print(f"  - Criando Workbook para '{nome_convenio}' (Form B)...")
     wb = Workbook()
     ws = wb.active
     ws.title = "Monitoramento Form B"
 
-    # Define as colunas que aparecerão na planilha final e na ordem correta
     colunas_finais = [
-        'Município', 'UVR',
-        'Regional PS', 'Situação PS', 'Data Envio PS',
-        'Regional LR', 'Situação LR', 'Data Envio LR',
-        'Regional OS', 'Situação OS', 'Data Envio OS'
+        'Regional', 'Município', 'UVR',
+        'Responsável PS', 'Situação PS', 'Data Envio PS',
+        'Responsável LR', 'Situação LR', 'Data Envio LR',
+        'Responsável OS', 'Situação OS', 'Data Envio OS'
     ]
-
-    # Aplica estilo ao cabeçalho
+    
     for col_num, header in enumerate(colunas_finais, 1):
         cell = ws.cell(row=1, column=col_num, value=header)
         cell.fill = cabeçalho_fill
@@ -56,50 +88,61 @@ def gerar_planilha_estilizada_formB(df, nome_convenio):
         cell.border = bordas
         cell.alignment = alinhamento
 
-    # Preenche os dados e aplica estilos célula por célula
+    dv = DataValidation(type="list", formula1='"Enviado,Não Enviado,Não Possui"', allow_blank=True)
+    ws.add_data_validation(dv)
+
     for index, row_data in df.iterrows():
         row_num = index + 2
         for col_num, col_name in enumerate(colunas_finais, 1):
             cell = ws.cell(row=row_num, column=col_num, value=row_data[col_name])
             cell.border = bordas
             cell.alignment = alinhamento
-
-            # Colore as células de Regional de acordo com o dicionário 'cores_regionais'
-            if col_name in ['Regional PS', 'Regional LR', 'Regional OS']:
-                hex_color = cores_regionais.get(row_data[col_name])
-                if hex_color:
-                    cell.fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type="solid")
             
-            # Colore as células de Situação (Enviado/Não Enviado)
             if col_name in ['Situação PS', 'Situação LR', 'Situação OS']:
-                if cell.value == "Enviado":
-                    cell.fill = enviado_fill
-                    cell.font = enviado_font
-                elif cell.value == "Não Enviado":
-                    cell.fill = atrasado_fill
-                    cell.font = enviado_font
+                dv.add(cell)
 
-    # Ajusta a largura das colunas com base no conteúdo
+    dxf_enviado = DifferentialStyle(font=enviado_font, fill=enviado_fill)
+    dxf_atrasado = DifferentialStyle(font=enviado_font, fill=atrasado_fill)
+    dxf_nao_possui = DifferentialStyle(font=nao_possui_font, fill=nao_possui_fill)
+    
+    rule_enviado = Rule(type="cellIs", operator="equal", formula=['"Enviado"'], dxf=dxf_enviado)
+    rule_atrasado = Rule(type="cellIs", operator="equal", formula=['"Não Enviado"'], dxf=dxf_atrasado)
+    rule_nao_possui = Rule(type="cellIs", operator="equal", formula=['"Não Possui"'], dxf=dxf_nao_possui)
+    
+    max_row = ws.max_row
+    colunas_situacao = ['E', 'H', 'K']
+    
+    for col_letra in colunas_situacao:
+        range_str = f"{col_letra}2:{col_letra}{max_row}"
+        ws.conditional_formatting.add(range_str, rule_enviado)
+        ws.conditional_formatting.add(range_str, rule_atrasado)
+        ws.conditional_formatting.add(range_str, rule_nao_possui)
+
+    coluna_regional_idx = 1
+    for row in range(2, ws.max_row + 1):
+        cell_regional = ws.cell(row=row, column=coluna_regional_idx)
+        nome_regional = cell_regional.value
+        if nome_regional and nome_regional in cores_regionais:
+            cor_hex = cores_regionais[nome_regional]
+            fill_regional = PatternFill(start_color=cor_hex, end_color=cor_hex, fill_type="solid")
+            cell_regional.fill = fill_regional
+
     for col in ws.columns:
         max_length = 0
         column_letter = col[0].column_letter
-        # Pula o ajuste automático para a coluna B (Município) que terá largura fixa
-        if column_letter == 'B':
+        if column_letter == 'C':
             continue
         for cell in col:
             try:
                 if len(str(cell.value)) > max_length:
                     max_length = len(str(cell.value))
-            except:
-                pass
+            except: pass
         ws.column_dimensions[column_letter].width = max_length + 5
 
-    # Define larguras fixas para colunas específicas para melhor visualização
-    ws.column_dimensions['A'].width = 35 # Município
-    ws.column_dimensions['B'].width = 25 # UVR
-    ws.freeze_panes = 'C2' # Congela as colunas Município e UVR
+    ws.column_dimensions['B'].width = 35
+    ws.column_dimensions['C'].width = 25
+    ws.freeze_panes = 'D2'
 
-    # Salva o arquivo final
     caminho_saida = pasta_outputs / f"{nome_convenio}_formB.xlsx"
     try:
         wb.save(caminho_saida)
@@ -110,16 +153,6 @@ def gerar_planilha_estilizada_formB(df, nome_convenio):
 
 # --- LÓGICA PRINCIPAL DO SCRIPT ---
 
-def formatar_data(data):
-    """Função auxiliar para padronizar o formato da data."""
-    if str(data).strip() in ['---', '']:
-        return '---'
-    try:
-       
-        return pd.to_datetime(data, dayfirst=True).strftime('%d/%m/%Y')
-    except (ValueError, TypeError):
-        return data
-
 print("Iniciando o processo de geração de relatórios para o Formulário B...")
 
 for convenio, caminho in caminhos_csv_formB.items():
@@ -129,54 +162,96 @@ for convenio, caminho in caminhos_csv_formB.items():
         print(f"  - AVISO: Arquivo '{caminho.name}' não encontrado. Pulando este convênio.")
         continue
 
-    # Lê o CSV, garantindo que todos os dados sejam tratados como texto e preenchendo vazios
-    df = pd.read_csv(caminho, dtype=str).fillna('---')
 
-    # Renomeia as colunas do CSV para os nomes desejados na planilha
+    caminho_saida = pasta_outputs / f"{convenio}_formB.xlsx"
+    df_estados_antigos = None
+    
+    # Verifica se a planilha de saída já existe para ler os dados dela
+    if caminho_saida.exists():
+        print(f"  - Encontrada planilha anterior. Lendo estados 'Não Possui'...")
+        try:
+            # Lê apenas as colunas chave e as de situação para otimizar
+            colunas_para_ler = ['Município', 'UVR', 'Situação PS', 'Situação LR', 'Situação OS']
+            df_estados_antigos = pd.read_excel(caminho_saida, usecols=colunas_para_ler, dtype=str)
+            # Filtra para manter apenas as linhas que realmente foram marcadas como "Não Possui"
+            df_estados_antigos = df_estados_antigos[
+                (df_estados_antigos['Situação PS'] == 'Não Possui') |
+                (df_estados_antigos['Situação LR'] == 'Não Possui') |
+                (df_estados_antigos['Situação OS'] == 'Não Possui')
+            ]
+        except Exception as e:
+            print(f"  - AVISO: Não foi possível ler a planilha anterior '{caminho_saida.name}': {e}")
+            df_estados_antigos = None # Reseta em caso de erro
+
+    df = pd.read_csv(caminho, dtype=str).fillna('---')
+    
+    df['municipio_chave'] = df['municipio'].apply(normalizar_texto)
+    caminho_regional = caminhos_regionais_xlsx[convenio]
+    
+    if caminho_regional.exists():
+        try:
+            print(f"  - Carregando e padronizando dados de Regional de '{caminho_regional.name}'...")
+            df_regional_lookup = pd.read_excel(
+                caminho_regional, sheet_name="01.25",
+                usecols=["Município", "UVR", "Regional"], dtype=str
+            )
+            df_regional_lookup.rename(columns={'Município': 'municipio', 'UVR': 'uvr'}, inplace=True)
+            df_regional_lookup['municipio_chave'] = df_regional_lookup['municipio'].apply(normalizar_texto)
+            df_regional_lookup.drop_duplicates(subset=["municipio_chave", "uvr"], inplace=True)
+            
+            df = pd.merge(
+                df, df_regional_lookup[['municipio_chave', 'uvr', 'Regional']],
+                on=['municipio_chave', 'uvr'], how='left'
+            )
+        except Exception as e:
+            print(f"  - ERRO ao ler o arquivo de regionais '{caminho_regional.name}': {e}")
+            df['Regional'] = 'ERRO NA LEITURA'
+    else:
+        print(f"  - AVISO: Arquivo de regionais '{caminho_regional.name}' não encontrado.")
+        df['Regional'] = 'Não encontrado'
+
+    df.drop(columns=['municipio_chave'], inplace=True, errors='ignore')
+    df.fillna('---', inplace=True)
+
     mapa_colunas = {
         'municipio': 'Município', 'uvr': 'UVR',
-        'regional_form_ps': 'Regional PS', 'data_envio_form_ps': 'Data Envio PS',
-        'regional_form_lr': 'Regional LR', 'data_envio_form_lr': 'Data Envio LR',
-        'regional_form_os': 'Regional OS', 'data_envio_form_os': 'Data Envio OS'
+        'regional_form_ps': 'Responsável PS', 'data_envio_form_ps': 'Data Envio PS',
+        'regional_form_lr': 'Responsável LR', 'data_envio_form_lr': 'Data Envio LR',
+        'regional_form_os': 'Responsável OS', 'data_envio_form_os': 'Data Envio OS'
     }
     df.rename(columns=mapa_colunas, inplace=True)
     
-    # Exibe apenas o primeiro nome dos regionais
-    for col in ['Regional PS', 'Regional LR', 'Regional OS']:
-        if col in df.columns:
-            df[col] = df[col].apply(lambda x: str(x).split(' ')[0])
-
-    # Cria as colunas de "Situação" e formata as de "Data" para cada serviço
     servicos = [('PS', 'Data Envio PS'), ('LR', 'Data Envio LR'), ('OS', 'Data Envio OS')]
     
     for sigla, coluna_data in servicos:
-        if coluna_data in df.columns:
-            # Cria a coluna de Situação com base na presença de data
-            df[f'Situação {sigla}'] = df[coluna_data].apply(
-                lambda x: 'Não Enviado' if str(x).strip() in ['---', ''] else 'Enviado'
-            )
-            # Formata a coluna de data
-            df[coluna_data] = df[coluna_data].apply(formatar_data)
-        else:
-            # Caso alguma coluna não exista no CSV, cria colunas vazias para evitar erros
-            df[f'Situação {sigla}'] = 'Não Enviado'
-            df[coluna_data] = '---'
+        df[f'Situação {sigla}'] = df[coluna_data].apply(
+            lambda x: 'Não Enviado' if str(x).strip() in ['---', ''] else 'Enviado'
+        )
+        df[coluna_data] = df[coluna_data].apply(formatar_data)
 
-    # Define a ordem final das colunas 
     ordem_final = [
-        'Município', 'UVR',
-        'Regional PS', 'Situação PS', 'Data Envio PS',
-        'Regional LR', 'Situação LR', 'Data Envio LR',
-        'Regional OS', 'Situação OS', 'Data Envio OS'
+        'Regional', 'Município', 'UVR',
+        'Responsável PS', 'Situação PS', 'Data Envio PS',
+        'Responsável LR', 'Situação LR', 'Data Envio LR',
+        'Responsável OS', 'Situação OS', 'Data Envio OS'
     ]
     
-    # Garante que todas as colunas existam, preenchendo com '---' se necessário
     for col in ordem_final:
         if col not in df.columns:
             df[col] = '---'
             
     df_final = df[ordem_final]
     
+
+    if df_estados_antigos is not None and not df_estados_antigos.empty:
+        print("  - Mesclando dados novos com os estados 'Não Possui' salvos...")
+
+        df_final.set_index(['Município', 'UVR'], inplace=True)
+        df_estados_antigos.set_index(['Município', 'UVR'], inplace=True)
+        
+        df_final.update(df_estados_antigos)
+        
+        df_final.reset_index(inplace=True)
 
     gerar_planilha_estilizada_formB(df_final, convenio)
 
