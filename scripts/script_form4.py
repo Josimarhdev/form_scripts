@@ -24,7 +24,8 @@ csv_file_input = pasta_inputs/"form4.csv"
 planilhas_auxiliares = {
     "belem": pasta_inputs / "0 - Belém" / "0 - Monitoramento Form 4.xlsx",
     "expansao": pasta_inputs / "0 - Expansão" / "0 - Monitoramento Form 4.xlsx",
-    "grs": pasta_inputs / "0 - GRS II" / "0 - Monitoramento Form 4.xlsx"
+    "grs": pasta_inputs / "0 - GRS II" / "0 - Monitoramento Form 4.xlsx",
+    "expansao_ms": pasta_inputs / "0 - Expansão MS" / "0 - Monitoramento Form 4.xlsx"
 }
 
 # Carrega a planilha principal

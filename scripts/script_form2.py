@@ -23,7 +23,8 @@ csv_file_input = pasta_inputs/"form2.csv"
 planilhas_auxiliares = {
     "belem": pasta_inputs / "0 - Belém" / "0 - Monitoramento Form 1, 2 e 3.xlsx",
     "expansao": pasta_inputs / "0 - Expansão" / "0 - Monitoramento Form 1, 2 e 3.xlsx",
-    "grs": pasta_inputs / "0 - GRS II" / "0 - Monitoramento Form 1, 2 e 3.xlsx"
+    "grs": pasta_inputs / "0 - GRS II" / "0 - Monitoramento Form 1, 2 e 3.xlsx",
+    "expansao_ms": pasta_inputs / "0 - Expansão MS" / "0 - Monitoramento Form 1, 2 e 3.xlsx"
 }
 
 
@@ -78,7 +79,7 @@ for nome, caminho in planilhas_auxiliares.items():
     ws_aux = wb_aux["Form 2 - UVR"]
 
     # Usa o workbook que foi criado no EXECUTAR_TODOS
-    wb_destino = {"belem": belem_wb, "expansao": expansao_wb, "grs": grs_wb}[nome] # type: ignore
+    wb_destino = {"belem": belem_wb, "expansao": expansao_wb, "grs": grs_wb, "expansao_ms": expansao_ms_wb}[nome] # type: ignore
     novo_ws = wb_destino.create_sheet("Form 2 - UVR")  
 
 
