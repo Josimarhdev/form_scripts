@@ -104,56 +104,77 @@ for nome, caminho in planilhas_auxiliares.items():
     novo_ws.auto_filter.ref = f"A1:G1"
 
     # Processa cada linha da planilha auxiliar
-    for row_idx, row in enumerate(ws_aux.iter_rows(min_row=2, values_only=True), start=2):
-        municipio_original = row[1]
-        uvr_nro_original = row[2]
-        row_data = list(row)
 
-       
+    for row_idx, row in enumerate(ws_aux.iter_rows(min_row=2), start=2):
+ 
+        municipio_original = row[1].value
+        uvr_nro_original = row[2].value
+        
+        # Constrói a lista de dados da linha a partir dos valores das células
+        row_data = [cell.value for cell in row]
+
         formula = (
             f'=IFERROR(IF(INDEX(\'Form 1 - Município\'!D2:D500, '
             f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'Form 1 - Município\'!B2:B500&\'Form 1 - Município\'!C2:C500, 0), 0))="", "", '
             f'INDEX(\'Form 1 - Município\'!D2:D500, '
             f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'Form 1 - Município\'!B2:B500&\'Form 1 - Município\'!C2:C500, 0), 0))), "")'
             )
-
-                    
+        
         row_data[3] = formula
 
-        # Normaliza o nome do município e UVR, fazendo a concatenação para comparação posterior
         if isinstance(municipio_original, str):
             municipio_uvr_normalizado = f"{normalizar_texto(municipio_original)}_{normalizar_uvr(uvr_nro_original)}"
         else:
             municipio_uvr_normalizado = ""
 
-        # Se foi enviado, atualiza status e data com os dados atualizados do drive
         if municipio_uvr_normalizado in dados_atualizados:
-               
-            # 1. Contar o número de datas de envio na planilha anterior (coluna F, índice 5)
-            datas_antigas_str = row[5] if row[5] and isinstance(row[5], str) else ""
-            # Conta as datas separadas por vírgula, ignorando entradas vazias resultantes do split
+            # Acessa o valor da célula para a verificação
+            datas_antigas_str = row[5].value if row[5].value and isinstance(row[5].value, str) else ""
             num_datas_antigas = len([data for data in datas_antigas_str.split(',') if data.strip()])
-
-            # 2. Contar o número de novas datas de envio a partir dos dados atualizados
             num_datas_novas = len(dados_atualizados[municipio_uvr_normalizado]["datas"])
 
-            # 3. Se o número de datas aumentou, marcar "Validado pelo Regional" (coluna G, índice 6) como "Não"
             if num_datas_novas > num_datas_antigas:
-                row_data[6] = "Não"  # Altera o valor na lista de dados da linha atual
+                row_data[6] = "Não"
             
-            print('deu certo')
             novas_datas = ", ".join(dados_atualizados[municipio_uvr_normalizado]["datas"])
             novo_status = dados_atualizados[municipio_uvr_normalizado]["status"]
-            row_data[5] = novas_datas  # Coluna de data de envio
-            row_data[4] = novo_status  # Coluna de status
+            row_data[5] = novas_datas
+            row_data[4] = novo_status
         else:
-            # Define como "Atrasado" caso não tenha status
             if row_data[4] == "Sem Técnico":
                 pass
             elif row_data[4] is None:
                 row_data[4] = "Atrasado"
 
-        ###ESTILIZAÇÃO
+        # Escreve os dados na nova planilha com estilos
+        for col_idx, value in enumerate(row_data, start=1):
+            cell = novo_ws.cell(row=row_idx, column=col_idx, value=value)
+            
+
+            original_cell = row[col_idx - 1] # Acessa a célula original
+            cell.alignment = Alignment(
+                horizontal=original_cell.alignment.horizontal,
+                vertical=original_cell.alignment.vertical,
+                text_rotation=original_cell.alignment.text_rotation,
+                wrap_text=original_cell.alignment.wrap_text,
+                shrink_to_fit=original_cell.alignment.shrink_to_fit,
+                indent=original_cell.alignment.indent
+            )
+            
+            cell.border = bordas
+            cell.font = Font(name='Arial', size=11)
+
+            if col_idx == 7: 
+                dv_sim_nao.add(cell.coordinate)
+            if col_idx == 10: 
+                dv_sim_nao_ti.add(cell.coordinate)
+            if col_idx == 5:
+                dv_status.add(cell.coordinate)
+        
+  
+        source_row_index = row[0].row
+        if source_row_index in ws_aux.row_dimensions:
+            novo_ws.row_dimensions[row_idx].height = ws_aux.row_dimensions[source_row_index].height
 
         # Coloração de validação (Sim/Não)
         if row_data[6] == "Não":
@@ -169,27 +190,9 @@ for nome, caminho in planilhas_auxiliares.items():
                 start_color=cor_hex, end_color=cor_hex, fill_type="solid"
             )
 
-        # Escreve os dados na nova planilha com estilos
-        for col_idx, value in enumerate(row_data, start=1):
-            cell = novo_ws.cell(row=row_idx, column=col_idx, value=value)
-            cell.border = bordas
-            cell.alignment = alinhamento
-            cell.font = Font(name='Arial', size=11)
-
-
-            if col_idx == 7: 
-                dv_sim_nao.add(cell.coordinate) # Adiciona esta célula à regra de validação dv_sim_nao pro validado pelos regionais
-
-            if col_idx == 10: 
-                dv_sim_nao_ti.add(cell.coordinate) # Adiciona esta célula à regra de validação dv_sim_nao pro validado pela equipe de TI  
-
-            if col_idx == 5:
-                dv_status.add(cell.coordinate) 
-
     # Aplica estilização com base no status 
     for row_idx in range(2, novo_ws.max_row + 1):
         status_cell = novo_ws.cell(row=row_idx, column=5)
-        status = status_cell.value
         aplicar_estilo_status(status_cell, status_cell.value)
 
     # Ajusta a largura das colunas com base no conteúdo
@@ -202,22 +205,20 @@ for nome, caminho in planilhas_auxiliares.items():
     novo_ws.column_dimensions['D'].width = 45
 
     if novo_ws.max_row >= 2: 
-
-        coluna_validado_regional = f"G2:G{novo_ws.max_row}" # Coluna G é a 7ª coluna
-        coluna_validado_ti = f"J2:J{novo_ws.max_row}" # Coluna G é a 10ª coluna
-        coluna_status = f"E2:E{novo_ws.max_row}" # Coluna E é a 5ª coluna
+        coluna_validado_regional = f"G2:G{novo_ws.max_row}"
+        coluna_validado_ti = f"J2:J{novo_ws.max_row}"
+        coluna_status = f"E2:E{novo_ws.max_row}"
 
         rule_sim = CellIsRule(operator='equal', formula=['"Sim"'], stopIfTrue=True, fill=validado_sim_fill)
-        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_sim) #Se for selecionado Sim, pinta de verde
-        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_sim) #Se for selecionado Sim, pinta de verde
+        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_sim)
+        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_sim)
 
         rule_nao = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
-        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_nao) #Se for selecionado Não, pinta de vermelho
-        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_nao) #Se for selecionado Sim, pinta de verde
+        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_nao)
+        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_nao)
 
         rule_analise = CellIsRule(operator='equal', formula=['"Em Análise"'], stopIfTrue=True, fill=analise_fill)
-        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_analise) #Se for selecionado Sim, pinta de verde
-
+        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_analise)
 
         status_rules = {
             "Enviado": {"fill": enviado_fill, "font": enviado_font},

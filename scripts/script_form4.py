@@ -178,94 +178,104 @@ for nome, caminho in planilhas_auxiliares.items():
             def diferenca_em_meses(ano_alvo, mes_alvo, ano_base, mes_base):
                 return (ano_base - ano_alvo) * 12 + (mes_base - mes_alvo)
 
-            # Processa linhas de dados
-            for row_idx, row in enumerate(ws_aux.iter_rows(min_row=2, values_only=True), start=2):
-                regional = row[0]
-                municipio_original = row[1]
-                uvr_nro_original = row[2]
-                row_data = list(row)
 
 
-                if aba != '01.25':
-                    formula = (
-                        f'=IFERROR(IF(INDEX(\'01.25\'!D2:D500, '
-                        f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'01.25\'!B2:B500&\'01.25\'!C2:C500, 0), 0))="", "", '
-                        f'INDEX(\'01.25\'!D2:D500, '
-                        f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'01.25\'!B2:B500&\'01.25\'!C2:C500, 0), 0))), "")'
-                    )
+      
+            for row_idx, row in enumerate(ws_aux.iter_rows(min_row=2), start=2):
+        
+                 regional = row[0].value
+                 municipio_original = row[1].value
+                 uvr_nro_original = row[2].value
+                 
+                 # Constrói a lista de dados da linha a partir dos valores das células
+                 row_data = [cell.value for cell in row]
 
-                    
-                    row_data[3] = formula
-               
-                if not isinstance(municipio_original, str) or not municipio_original.strip():
-                    continue
+                 if aba != '01.25':
+                     formula = (
+                         f'=IFERROR(IF(INDEX(\'01.25\'!D2:D500, '
+                         f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'01.25\'!B2:B500&\'01.25\'!C2:C500, 0), 0))="", "", '
+                         f'INDEX(\'01.25\'!D2:D500, '
+                         f'MATCH(B{row_idx}&C{row_idx}, INDEX(\'01.25\'!B2:B500&\'01.25\'!C2:C500, 0), 0))), "")'
+                     )
+                     row_data[3] = formula
+                 
+                 if not isinstance(municipio_original, str) or not municipio_original.strip():
+                     continue
 
-                municipio_uvr_normalizado = f"{normalizar_texto(municipio_original)}_{normalizar_uvr(uvr_nro_original)}"
-                chave_busca = (municipio_uvr_normalizado, mes_ano_aux)
-                div_por_municipio[municipio_uvr_normalizado] = nome
-                regionais_por_municipio[municipio_uvr_normalizado] = regional
+                 municipio_uvr_normalizado = f"{normalizar_texto(municipio_original)}_{normalizar_uvr(uvr_nro_original)}"
+                 chave_busca = (municipio_uvr_normalizado, mes_ano_aux)
+                 div_por_municipio[municipio_uvr_normalizado] = nome
+                 regionais_por_municipio[municipio_uvr_normalizado] = regional
 
-                situacao_atual = row_data[4]
-                tem_envio_existente = bool(row_data[5]) and isinstance(row_data[5], str) and row_data[5].strip()
+                 situacao_atual = row_data[4]
+                 # Acessa o valor da célula para a verificação
+                 tem_envio_existente = bool(row[5].value) and isinstance(row[5].value, str) and row[5].value.strip()
 
-                # Atualiza dados conforme a planilha principal
-                if chave_busca in dados_atualizados:
+                 # Atualiza dados conforme a planilha principal
+                 if chave_busca in dados_atualizados:
+                     datas_antigas_str = row[5].value if row[5].value and isinstance(row[5].value, str) else ""
+                     num_datas_antigas = len([data for data in datas_antigas_str.split(',') if data.strip()])
+                     num_datas_novas = len(dados_atualizados[chave_busca]["datas_envio"])
+                     if num_datas_novas > num_datas_antigas:
+                         row_data[6] = "Não"
+                      
+                     row_data[5] = ", ".join(dados_atualizados[chave_busca]["datas_envio"])
+                     row_data[4] = dados_atualizados[chave_busca]["status"]
+                 elif not tem_envio_existente:
+                     if situacao_atual not in ("Sem Técnico", "Outras Ocorrências"):
+                         try:
+                             aba_mes, aba_ano = map(int, mes_ano_aux.split("."))
+                             aba_ano += 2000
+                         except:
+                             aba_mes, aba_ano = None, None
 
-                    # 1. Contar o número de datas de envio na planilha anterior (coluna F, índice 5)
-                    datas_antigas_str = row[5] if row[5] and isinstance(row[5], str) else ""
-                    num_datas_antigas = len([data for data in datas_antigas_str.split(',') if data.strip()])
+                         if aba_ano and aba_mes:
+                             diff = diferenca_em_meses(aba_ano, aba_mes, ano_atual, mes_atual)
+                             if diff == 1:
+                                 row_data[4] = "Atrasado"
+                             elif diff >= 2:
+                                 row_data[4] = "Atrasado >= 2"
 
-                    # 2. Contar o número de novas datas de envio a partir dos dados do CSV
-                    num_datas_novas = len(dados_atualizados[chave_busca]["datas_envio"])
+                 # Estiliza as linhas
+                 for col_idx, value in enumerate(row_data, start=1):
+                     cell = ws_final.cell(row=row_idx, column=col_idx, value=value)
+                     cell.border = bordas
+                     cell.font = Font(name='Arial', size=11)
+                     
+                  
+                   
+                     original_cell = row[col_idx - 1] # Acessa a célula original (índice 0)
+                     cell.alignment = Alignment(
+                         horizontal=original_cell.alignment.horizontal,
+                         vertical=original_cell.alignment.vertical,
+                         text_rotation=original_cell.alignment.text_rotation,
+                         wrap_text=original_cell.alignment.wrap_text,
+                         shrink_to_fit=original_cell.alignment.shrink_to_fit,
+                         indent=original_cell.alignment.indent
+                     )
+                      
+                     if col_idx == 7:
+                         dv_sim_nao.add(cell.coordinate)
+                     if col_idx == 10:
+                         dv_sim_nao_ti.add(cell.coordinate)
+                     if col_idx == 5:
+                         dv_status.add(cell.coordinate)
+                 
+    
+                 source_row_index = row[0].row
+                 if source_row_index in ws_aux.row_dimensions:
+                     ws_final.row_dimensions[row_idx].height = ws_aux.row_dimensions[source_row_index].height
 
-                    # 3. Se o número de datas aumentou, marcar "Validado pelo Regional" (coluna G, índice 6) como "Não"
-                    if num_datas_novas > num_datas_antigas:
-                        row_data[6] = "Não"
-                    
-                    row_data[5] = ", ".join(dados_atualizados[chave_busca]["datas_envio"])
-                    row_data[4] = dados_atualizados[chave_busca]["status"]
-                elif not tem_envio_existente:
-                    if situacao_atual not in ("Sem Técnico", "Outras Ocorrências"):
-                        try:
-                            aba_mes, aba_ano = map(int, mes_ano_aux.split("."))
-                            aba_ano += 2000
-                        except:
-                            aba_mes, aba_ano = None, None
+                 # Aplica cor para célula de validação (lógica mantida)
+                 if row_data[6] == "Não":
+                     ws_final.cell(row=row_idx, column=7).fill = validado_nao_fill
+                 elif row_data[6] == "Sim":
+                     ws_final.cell(row=row_idx, column=7).fill = validado_sim_fill
 
-                        if aba_ano and aba_mes:
-                            diff = diferenca_em_meses(aba_ano, aba_mes, ano_atual, mes_atual)
-                            if diff == 1:
-                                row_data[4] = "Atrasado"
-                            elif diff >= 2:
-                                row_data[4] = "Atrasado >= 2"
-
-                # Estiliza as linhas
-                for col_idx, value in enumerate(row_data, start=1):
-                    cell = ws_final.cell(row=row_idx, column=col_idx, value=value)
-                    cell.border = bordas
-                    cell.alignment = alinhamento
-                    cell.font = Font(name='Arial', size=11)
-                    
-                    if col_idx == 7:
-                        dv_sim_nao.add(cell.coordinate)
-
-                    if col_idx == 10:
-                        dv_sim_nao_ti.add(cell.coordinate)
-
-                    if col_idx == 5:
-                        dv_status.add(cell.coordinate) 
-                    
-
-                # Aplica cor para célula de validação
-                if row_data[6] == "Não":
-                    ws_final.cell(row=row_idx, column=7).fill = validado_nao_fill
-                elif row_data[6] == "Sim":
-                    ws_final.cell(row=row_idx, column=7).fill = validado_sim_fill
-
-                # Aplica cor da regional
-                if regional in cores_regionais:
-                    cor_hex = cores_regionais[regional]
-                    ws_final.cell(row=row_idx, column=1).fill = PatternFill(start_color=cor_hex, end_color=cor_hex, fill_type="solid")
+                 # Aplica cor da regional (lógica mantida)
+                 if regional in cores_regionais:
+                     cor_hex = cores_regionais[regional]
+                     ws_final.cell(row=row_idx, column=1).fill = PatternFill(start_color=cor_hex, end_color=cor_hex, fill_type="solid")
 
             # Aplica estilo com base no status
             for row_idx in range(2, ws_final.max_row + 1):

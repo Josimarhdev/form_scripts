@@ -18,7 +18,7 @@ pasta_scripts = caminho_script.parent
 pasta_inputs = pasta_scripts.parent / "inputs"
 
 # Caminho do arquivo do banco e arquivos auxiliares (originais do drive)
-csv_file_input = pasta_inputs/"form1.csv"  
+csv_file_input = pasta_inputs/"form1.csv"
 planilhas_auxiliares = {
     "belem": pasta_inputs / "0 - Belém" / "0 - Monitoramento Form 1, 2 e 3.xlsx",
     "expansao": pasta_inputs / "0 - Expansão" / "0 - Monitoramento Form 1, 2 e 3.xlsx",
@@ -34,7 +34,7 @@ df_input = pd.read_csv(csv_file_input, dtype=str)
 dados_atualizados = {}
 
 for _, row in df_input.iterrows():
-    municipio = row['municipio']  
+    municipio = row['municipio']
     data_envio = row['data_envio']
 
 
@@ -72,7 +72,7 @@ for nome, caminho in planilhas_auxiliares.items():
 
     ws_aux = wb_aux["Form 1 - Município"]
 
-    
+     
     # Usa o workbook que foi criado no EXECUTAR_TODOS
     wb_destino = {"belem": belem_wb, "expansao": expansao_wb, "grs": grs_wb, "expansao_ms": expansao_ms_wb}[nome] # type: ignore
 
@@ -105,11 +105,11 @@ for nome, caminho in planilhas_auxiliares.items():
                 # Copia as células mescladas
                 for merged_cell_range in ws_origem.merged_cells.ranges:
                     ws_destino_aba.merge_cells(str(merged_cell_range))
-                
+                 
                 # Copia as validações de dados
                 for dv in ws_origem.data_validations.dataValidation:
                     ws_destino_aba.add_data_validation(dv)
-                
+                 
                 # Copia a configuração do freeze_panes
                 if ws_origem.freeze_panes:
                     ws_destino_aba.freeze_panes = ws_origem.freeze_panes
@@ -126,12 +126,12 @@ for nome, caminho in planilhas_auxiliares.items():
 
     novo_ws = wb_destino.create_sheet("Form 1 - Município")  
 
-    
+     
 
     dv_sim_nao = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=True) #dropdown com sim e nao
     novo_ws.add_data_validation(dv_sim_nao)
 
-    dv_sim_nao_ti = DataValidation(type="list", formula1='"Sim,Não, Em Análise"', allow_blank=True) 
+    dv_sim_nao_ti = DataValidation(type="list", formula1='"Sim,Não, Em Análise"', allow_blank=True)
     novo_ws.add_data_validation(dv_sim_nao_ti)
 
     dv_status = DataValidation(type="list", formula1='"Enviado, Atrasado, Outras Ocorrências, Sem Técnico, Duplicado"', allow_blank=True) #dropdown de status
@@ -149,9 +149,11 @@ for nome, caminho in planilhas_auxiliares.items():
     novo_ws.auto_filter.ref = f"A1:G1"
 
     # Processa as linhas da planilha auxiliar
-    for row_idx, row in enumerate(ws_aux.iter_rows(min_row=2, values_only=True), start=2):
-        municipio_original = row[1]
-        row_data = list(row)
+
+    for row_idx, row_cells in enumerate(ws_aux.iter_rows(min_row=2), start=2):
+
+        municipio_original = row_cells[1].value
+        row_data = [cell.value for cell in row_cells]
 
         # Normaliza o nome do município
         if isinstance(municipio_original, str):
@@ -162,33 +164,28 @@ for nome, caminho in planilhas_auxiliares.items():
 
         # Atualiza status e data de envio, se estiver no dicionário
         if municipio_normalizado in dados_atualizados:
-            
+             
             # 1. Contar o número de datas de envio na planilha anterior (coluna F, índice 5)
-            datas_antigas_str = row[5] if row[5] and isinstance(row[5], str) else ""
-            # Conta as datas separadas por vírgula, ignorando entradas vazias resultantes do split
+            datas_antigas_str = row_data[5] if row_data[5] and isinstance(row_data[5], str) else ""
             num_datas_antigas = len([data for data in datas_antigas_str.split(',') if data.strip()])
 
-            # 2. Contar o número de novas datas de envio a partir dos dados atualizados
+            # 2. Contar o número de novas datas de envio
             num_datas_novas = len(dados_atualizados[municipio_normalizado]["datas"])
 
-            # 3. Se o número de datas aumentou, marcar "Validado pelo Regional" (coluna G, índice 6) como "Não"
+            # 3. Se o número de datas aumentou, marcar "Validado pelo Regional" como "Não"
             if num_datas_novas > num_datas_antigas:
-                row_data[6] = "Não"  # Altera o valor na lista de dados da linha atual
-            
+                row_data[6] = "Não"
+             
             novas_datas = ", ".join(dados_atualizados[municipio_normalizado]["datas"])
             novo_status = dados_atualizados[municipio_normalizado]["status"]
-            row_data[5] = novas_datas  # Coluna de data
-            row_data[4] = novo_status  # Coluna de status
+            row_data[5] = novas_datas
+            row_data[4] = novo_status
         else:
             # Caso não tenha envio:
             if row_data[4] == "Sem Técnico":
                 pass
             elif row_data[4] is None:
                 row_data[4] = "Atrasado"
-
-        ### ESTILIZAÇÃO 
-
-
 
         # Coloração de validação (Sim/Não)
         if row_data[6] == "Não":
@@ -202,60 +199,73 @@ for nome, caminho in planilhas_auxiliares.items():
             cor_hex = cores_regionais[regional]
             novo_ws.cell(row=row_idx, column=1).fill = PatternFill(start_color=cor_hex, end_color=cor_hex, fill_type="solid")
 
-        # Copia os dados para a nova planilha e aplica borda/alinhamento
+        # Copia os dados para a nova planilha e aplica estilos
         for col_idx, value in enumerate(row_data, start=1):
             cell = novo_ws.cell(row=row_idx, column=col_idx, value=value)
+            
+
+            # Isso preserva quebras de linha (wrap_text) e outras formatações de alinhamento.
+            original_cell = row_cells[col_idx - 1]
+            cell.alignment = Alignment(
+                horizontal=original_cell.alignment.horizontal,
+                vertical=original_cell.alignment.vertical,
+                text_rotation=original_cell.alignment.text_rotation,
+                wrap_text=original_cell.alignment.wrap_text,
+                shrink_to_fit=original_cell.alignment.shrink_to_fit,
+                indent=original_cell.alignment.indent
+            )
+            
             cell.border = bordas
-            cell.alignment = alinhamento
             cell.font = Font(name='Arial', size=11)
+                   
+            if col_idx == 7:
+                dv_sim_nao.add(cell.coordinate)
 
-                  
-            if col_idx == 7: 
-                dv_sim_nao.add(cell.coordinate) # Adiciona esta célula à regra de validação dv_sim_nao pro validado pelos regionais
-
-            if col_idx == 10: 
-                dv_sim_nao_ti.add(cell.coordinate) # Adiciona esta célula à regra de validação dv_sim_nao pro validado pela equipe de TI 
+            if col_idx == 10:
+                dv_sim_nao_ti.add(cell.coordinate)
 
             if col_idx == 5:
                 dv_status.add(cell.coordinate)         
-                
+                 
+
+        # Isso garante que o conteúdo não fique escondido.
+        source_row_index = row_cells[0].row
+        if source_row_index in ws_aux.row_dimensions:
+            novo_ws.row_dimensions[row_idx].height = ws_aux.row_dimensions[source_row_index].height
 
     # Aplica cor ao status 
     for row_idx in range(2, novo_ws.max_row + 1):
         status_cell = novo_ws.cell(row=row_idx, column=5)
-        status = status_cell.value
         aplicar_estilo_status(status_cell, status_cell.value)
 
-    # Ajusta a largura das colunas com base no conteúdo
+    # Ajusta a largura das colunas com base no conteúdo (pode ser ajustado ou removido se preferir manter as larguras originais)
     for col in novo_ws.columns:
         max_length = max(len(str(cell.value)) if cell.value else 0 for cell in col)
         col_letter = col[0].column_letter
+        # Para evitar que colunas com texto longo (como observações) fiquem excessivamente largas,
+        # você pode definir uma largura máxima ou ajustar manualmente.
+        # Por enquanto, a lógica original será mantida.
         novo_ws.column_dimensions[col_letter].width = max_length + 5
 
 
     novo_ws.freeze_panes = 'D1' #Congela as colunas A,B,C
 
+        
+    if novo_ws.max_row >= 2:
+        coluna_validado_regional = f"G2:G{novo_ws.max_row}"
+        coluna_validado_ti = f"J2:J{novo_ws.max_row}"
+        coluna_status = f"E2:E{novo_ws.max_row}"
        
-    if novo_ws.max_row >= 2: 
-
-        coluna_validado_regional = f"G2:G{novo_ws.max_row}" # Coluna G é a 7ª coluna
-        coluna_validado_ti = f"J2:J{novo_ws.max_row}" # Coluna J é a 10ª coluna
-        coluna_status = f"E2:E{novo_ws.max_row}" # Coluna E é a 5ª coluna
-
-      
-
-
-
         rule_sim = CellIsRule(operator='equal', formula=['"Sim"'], stopIfTrue=True, fill=validado_sim_fill)
-        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_sim) #Se for selecionado Sim, pinta de verde
-        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_sim) #Se for selecionado Sim, pinta de verde
+        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_sim)
+        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_sim)
 
         rule_nao = CellIsRule(operator='equal', formula=['"Não"'], stopIfTrue=True, fill=validado_nao_fill)
-        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_nao) #Se for selecionado Não, pinta de vermelho
-        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_nao) #Se for selecionado Sim, pinta de verde
+        novo_ws.conditional_formatting.add(coluna_validado_regional, rule_nao)
+        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_nao)
 
         rule_analise = CellIsRule(operator='equal', formula=['"Em Análise"'], stopIfTrue=True, fill=analise_fill)
-        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_analise) #Se for selecionado Sim, pinta de verde
+        novo_ws.conditional_formatting.add(coluna_validado_ti, rule_analise)
 
 
         status_rules = {
@@ -273,9 +283,8 @@ for nome, caminho in planilhas_auxiliares.items():
                             fill=styles["fill"],
                             font=styles["font"])
             novo_ws.conditional_formatting.add(coluna_status, rule)        
-    
+     
 
     # Salva a nova planilha com nome específico
     #novo_caminho = pasta_scripts.parent / "form1" / f"{nome}_atualizado_form1.xlsx"
     #novo_wb.save(novo_caminho)
-    
