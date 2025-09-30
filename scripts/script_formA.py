@@ -139,11 +139,25 @@ for convenio, caminho_csv in caminhos_csv.items():
     if caminho_regional.exists():
         try:
             print(f"  - Carregando e padronizando dados de Regional de '{caminho_regional.name}'...")
+
+            # --- CÓDIGO FINAL E CORRIGIDO ---
+
+            # 1. Volte a ler as colunas com os nomes originais e corretos do Excel.
             df_regional_lookup = pd.read_excel(
                 caminho_regional, sheet_name="01.25",
-                usecols=["Município", "UVR", "Regional"], dtype=str
+                usecols=["Município", "UVR", "Regional"], # Nomes originais confirmados por você
+                dtype=str
             )
+
+            # 2. Renomeie as colunas para o padrão do script (passo que também estava correto).
             df_regional_lookup.rename(columns={'Município': 'municipio', 'UVR': 'uvr'}, inplace=True)
+
+            # 3. PADRONIZE A CHAVE 'uvr' EM AMBOS OS DATAFRAMES (ESTA É A CORREÇÃO PRINCIPAL)
+            # Converte 'uvr' para número em ambos, resolvendo '01' vs '1'.
+            df['uvr'] = pd.to_numeric(df['uvr'], errors='coerce')
+            df_regional_lookup['uvr'] = pd.to_numeric(df_regional_lookup['uvr'], errors='coerce')
+
+            # 4. Continue com a criação da chave de município e o merge.
             df_regional_lookup['municipio_chave'] = df_regional_lookup['municipio'].apply(normalizar_texto)
             df_regional_lookup.drop_duplicates(subset=["municipio_chave", "uvr"], inplace=True)
             
@@ -151,6 +165,8 @@ for convenio, caminho_csv in caminhos_csv.items():
                 df, df_regional_lookup[['municipio_chave', 'uvr', 'Regional']],
                 on=['municipio_chave', 'uvr'], how='left'
             )
+            # --- FIM DO CÓDIGO FINAL ---
+
         except Exception as e:
             print(f"  - ERRO ao ler o arquivo de regionais '{caminho_regional.name}': {e}")
             df['Regional'] = 'ERRO NA LEITURA'

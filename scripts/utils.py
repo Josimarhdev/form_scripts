@@ -32,7 +32,12 @@ cores_regionais = {
     "Maringá": "FFCCFF",
     "Curitiba": "FFFF99",
     "Guarapuava": "F1E0C6",
-    "Laranjeiras do Sul" : "FFD3AC"
+    "Laranjeiras do Sul" : "FFD3AC",
+    "Cibax": "FDEE00",      # Amarelo
+    "Comafen": "FFA500",    # Laranja
+    "Coripa": "008000",     # Verde
+    "Cifra": "00BFFF",      # Azul
+    "Conisul": "FF0000"     # Vermelho
 }
 
 bordas = Border(
