@@ -1,6 +1,7 @@
 from openpyxl import load_workbook, Workbook  # Para carregar e criar arquivos Excel
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment  # Para aplicar estilos nas células
 from datetime import datetime  # Para lidar com datas
+from copy import copy
 from openpyxl.formatting.rule import CellIsRule
 from openpyxl.worksheet.datavalidation import DataValidation
 import pandas as pd
@@ -149,6 +150,10 @@ for nome, caminho in planilhas_auxiliares.items():
             
  
             original_cell = row[col_idx - 1] # Acessa a célula original
+
+            if original_cell.has_style:
+                cell.fill = copy(original_cell.fill)
+                
             cell.alignment = Alignment(
                 horizontal=original_cell.alignment.horizontal,
                 vertical=original_cell.alignment.vertical,

@@ -1,6 +1,7 @@
 from openpyxl import load_workbook, Workbook  # Para trabalhar com arquivos Excel
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment  # Para aplicar estilos nas células
 from openpyxl.formatting.rule import CellIsRule
+from copy import copy
 from datetime import datetime  # Para manipular datas
 import pandas as pd
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -206,6 +207,9 @@ for nome, caminho in planilhas_auxiliares.items():
 
             # Isso preserva quebras de linha (wrap_text) e outras formatações de alinhamento.
             original_cell = row_cells[col_idx - 1]
+
+            if original_cell.has_style:
+                cell.fill = copy(original_cell.fill)
             cell.alignment = Alignment(
                 horizontal=original_cell.alignment.horizontal,
                 vertical=original_cell.alignment.vertical,

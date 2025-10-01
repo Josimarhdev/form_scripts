@@ -2,6 +2,7 @@ from openpyxl import load_workbook, Workbook  # Para trabalhar com arquivos exce
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment  # Para aplicas estilos nas cédulas
 from openpyxl.formatting.rule import CellIsRule
 from datetime import datetime  # Para manipular datas
+from copy import copy
 import pandas as pd
 from openpyxl.worksheet.datavalidation import DataValidation
 from pathlib import Path  # Para manipulação de caminhos de arquivos
@@ -152,6 +153,10 @@ for nome, caminho in planilhas_auxiliares.items():
             
 
             original_cell = row[col_idx - 1] # Acessa a célula original
+
+            if original_cell.has_style:
+                cell.fill = copy(original_cell.fill)
+                
             cell.alignment = Alignment(
                 horizontal=original_cell.alignment.horizontal,
                 vertical=original_cell.alignment.vertical,

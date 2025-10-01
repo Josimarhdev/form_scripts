@@ -1,6 +1,7 @@
 # Importações necessárias
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+from copy import copy
 from datetime import datetime
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.formatting.rule import CellIsRule
@@ -245,6 +246,10 @@ for nome, caminho in planilhas_auxiliares.items():
                   
                    
                      original_cell = row[col_idx - 1] # Acessa a célula original (índice 0)
+                     
+                     if original_cell.has_style:
+                        cell.fill = copy(original_cell.fill)
+
                      cell.alignment = Alignment(
                          horizontal=original_cell.alignment.horizontal,
                          vertical=original_cell.alignment.vertical,
