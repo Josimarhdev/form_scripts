@@ -3,7 +3,6 @@ id,municipio,data_envio
 77,Reserva do Iguaçu,2025-02-04 14:36:08.220
 108,Jaguariaíva,2025-02-04 17:08:00.325
 74,Presidente Castelo Branco,2025-02-04 19:10:18.525
-69,Mandaguari,2025-02-04 21:25:58.076
 72,Quedas do Iguaçu,2025-02-05 15:25:00.180
 112,Laranjeiras do Sul,2025-02-05 16:25:17.175
 113,Colorado,2025-02-05 17:07:36.799
@@ -117,7 +116,6 @@ id,municipio,data_envio
 156,Santa Cruz de Monte Castelo,2025-09-17 13:26:01.861
 141,Japorã,2025-09-17 16:00:13.763
 151,Nova Londrina,2025-09-18 10:18:33.169
-137,Mariluz,2025-09-19 08:59:56.655
 120,Iporã,2025-09-22 13:35:39.245
 163,Alto Paraíso,2025-09-22 15:28:34.756
 130,São Jorge do Patrocínio,2025-09-22 16:11:03.159
@@ -141,3 +139,14 @@ id,municipio,data_envio
 157,Marilena,2025-10-03 16:06:06.621
 165,Tapira,2025-10-06 09:22:46.181
 129,Iguatemi,2025-10-06 11:38:20.897
+136,Itaquiraí,2025-10-08 09:28:12.144
+152,Diamante do Norte,2025-10-10 15:06:54.196
+155,Porto Rico,2025-10-13 11:01:27.789
+68,Castro,2025-10-13 13:38:07.113
+123,Alto Piquiri,2025-10-13 14:28:27.455
+69,Mandaguari,2025-10-15 16:29:28.278
+111,Coronel Vivida,2025-10-27 10:40:53.920
+88,São João,2025-10-27 10:42:22.644
+68,Castro,2025-10-29 09:31:35.474
+163,Alto Paraíso,2025-12-29 15:28:34.756
+137,Mariluz,2025-12-29 08:27:39.893

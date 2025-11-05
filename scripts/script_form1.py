@@ -197,6 +197,8 @@ for nome, caminho in planilhas_auxiliares.items():
         # Coloração regional
         regional = row_data[0]
         if regional in cores_regionais:
+            print(regional)
+            print(cores_regionais)
             cor_hex = cores_regionais[regional]
             novo_ws.cell(row=row_idx, column=1).fill = PatternFill(start_color=cor_hex, end_color=cor_hex, fill_type="solid")
 
@@ -229,7 +231,14 @@ for nome, caminho in planilhas_auxiliares.items():
                 dv_sim_nao_ti.add(cell.coordinate)
 
             if col_idx == 5:
-                dv_status.add(cell.coordinate)         
+                dv_status.add(cell.coordinate) 
+
+
+        # Coloração regional
+        regional = row_data[0]
+        if regional in cores_regionais:
+            cor_hex = cores_regionais[regional]
+            novo_ws.cell(row=row_idx, column=1).fill = PatternFill(start_color=cor_hex, end_color=cor_hex, fill_type="solid")       
                  
 
         # Isso garante que o conteúdo não fique escondido.

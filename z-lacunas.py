@@ -140,7 +140,7 @@ else:
     relatorio_final_df = relatorio_final_df[[
         'Regional', 'Município', 'UVR', 'Mês da Lacuna', 'data_ref_csv'
     ]].rename(columns={
-        'data_ref_csv': 'Data de Referência Encontrada no CSV'
+        'data_ref_csv': 'Data de Referência CSV'
     })
     try:
         with pd.ExcelWriter(caminho_relatorio_final, engine='openpyxl') as writer:
