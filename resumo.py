@@ -34,18 +34,25 @@ def processar_planilhas_excel():
         print(f"Erro ao ler uma das abas: {e}. Verifique se os nomes das abas estão corretos.")
         return None, None, None 
 
-    monitoramento.columns = [
-        'Regional', 'Municípios', 'UVR', 'Form 1 - Município', 'Form 2 - UVR',
-        'Form 3 - Empreendimento', 'Unnamed: 6', 'Regional.1', 'Municípios.1',
-        'UVR.1', 'Form 1 - Município.1', 'Form 2 - UVR.1', 'Form 3 - Empreendimento.1'
-    ]
+# --- INÍCIO DA CORREÇÃO ---
+
+    # 2. ADICIONE ESTA LINHA:
+    #    Esta é a linha do seu script original. Ela remove os cabeçalhos 
+    #    repetidos que estão no meio dos dados.
     monitoramento.drop(monitoramento[monitoramento['Regional'] == 'Regional'].index, inplace=True)
 
-    uvr_list1 = monitoramento[['Regional', 'Municípios', 'UVR']].dropna(subset=['Regional'])
-    uvr_list2 = monitoramento[['Regional.1', 'Municípios.1', 'UVR.1']].dropna(subset=['Regional.1'])
-    uvr_list2.columns = ['Regional', 'Municípios', 'UVR']
-    all_uvrs = pd.concat([uvr_list1, uvr_list2]).drop_duplicates().reset_index(drop=True)
-    all_uvrs.rename(columns={'Municípios': 'Municipio'}, inplace=True)
+    # 3. Renomeie as colunas 'Municípios' para 'Municipio'
+    monitoramento.rename(columns={'Municípios': 'Municipio'}, inplace=True)
+    
+    # 4. Pegue apenas as colunas que identificam a UVR
+    all_uvrs = monitoramento[['Regional', 'Municipio', 'UVR']].copy()
+    
+    # 5. Remova quaisquer linhas em branco ou duplicadas
+    all_uvrs.dropna(subset=['Regional', 'Municipio', 'UVR'], inplace=True)
+    all_uvrs.drop_duplicates(inplace=True)
+    all_uvrs.reset_index(drop=True, inplace=True)
+    
+    # --- FIM DA CORREÇÃO ---
     
     def check_submission(df, municipio, uvr):
         df_filtered = df[(df['Município'] == municipio) & (df['UVR'] == uvr)]

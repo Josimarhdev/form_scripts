@@ -10,7 +10,7 @@ enviado_fill = PatternFill(start_color="006400", end_color="006400", fill_type="
 enviado_font = Font(color="FFFFFF", name='Arial', size=11)
 semtecnico_fill = PatternFill(start_color="808080", end_color="808080", fill_type="solid")
 atrasado_fill = PatternFill(start_color="FF6400", end_color="FF6400", fill_type="solid")
-duplicado_fill = PatternFill(start_color="A020F0", end_color="A020F0", fill_type="solid")
+duplicado_fill = PatternFill(start_color="31869b", end_color="31869b", fill_type="solid")
 outras_fill = PatternFill(start_color="A020F0", end_color="A020F0", fill_type="solid")
 atrasado2_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
 analise_fill = PatternFill(start_color="FFA500", end_color= "FFA500", fill_type="solid")
@@ -19,12 +19,12 @@ validado_nao_fill = PatternFill(start_color="FF6666", end_color="FF6666", fill_t
 validado_sim_fill = PatternFill(start_color="66FF66", end_color="66FF66", fill_type="solid")
 
 cores_regionais = {
-    "Gabriel": "A9C5E6",
-    "Bianca": "FFFF99",
-    "Valquiria": "B2FFFF",
-    "Valquíria": "B2FFFF",
-    "Luana": "FFCCFF",
-    "Larissa": "F1E0C6",
+    "Gabriel": "A3DDFF",
+    "Bianca": "FFF7C9",
+    "Valquiria": "91F0D3",
+    "Valquíria": "91F0D3",
+    "Luana": "FFD2DE",
+    "Larissa": "EBC99F",
     "Paranavaí": "9B59B6",
     "Ana Paula": "993399",
     "Londrina": "A9C5E6",
@@ -33,11 +33,12 @@ cores_regionais = {
     "Curitiba": "FFFF99",
     "Guarapuava": "F1E0C6",
     "Laranjeiras do Sul" : "FFD3AC",
-    "Cibax": "FDEE00",      # Amarelo
-    "Comafen": "FFA500",    # Laranja
-    "Coripa": "008000",     # Verde
-    "Cifra": "00BFFF",      # Azul
-    "Conisul": "FF0000"     # Vermelho
+    "Cibax": "FDEE00",     
+    "Comafen": "FFA500",    
+    "Coripa": "008000",     
+    "Cifra": "00BFFF",    
+    "Conisul": "FF0000",    
+    "Gustavo" : "CCC0DA"
 }
 
 bordas = Border(
