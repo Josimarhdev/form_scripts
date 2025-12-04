@@ -508,7 +508,31 @@ for nome, wb in wb_final.items():
     
 
 # Salva os novos arquivos com nome atualizado
-for nome, wb in wb_final.items():
-    novo_caminho = pasta_scripts.parent / "outputs" / f"{nome}_atualizado_form4.xlsx"
-    wb.save(novo_caminho)
-    print(f"{novo_caminho} gerado com sucesso")
+# Mapeamento das chaves internas do script para os nomes das pastas desejadas
+mapa_pastas_form4 = {
+    "belem": "Belém",
+    "expansao": "Expansão",
+    "grs": "GRS",
+    "expansao_ms": "Expansão MS"
+}
+
+print("Salvando arquivos do Form 4...")
+
+for chave_interna, wb in wb_final.items():
+    # Pega o nome correto da pasta (ex: 'belem' vira 'Belém')
+    nome_pasta_destino = mapa_pastas_form4.get(chave_interna)
+    
+    if nome_pasta_destino:
+        # Define o caminho: outputs/NomeDaPasta
+        caminho_destino_pasta = pasta_scripts.parent / "outputs" / nome_pasta_destino
+        
+        # Garante que a pasta existe (caso o script principal ainda não tenha criado)
+        caminho_destino_pasta.mkdir(parents=True, exist_ok=True)
+        
+        # Define o nome do arquivo
+        novo_caminho = caminho_destino_pasta / "0 - Monitoramento Form 4.xlsx"
+        
+        wb.save(novo_caminho)
+        print(f"Salvo com sucesso: {novo_caminho}")
+    else:
+        print(f"ERRO: Chave '{chave_interna}' não encontrada no mapeamento de pastas.")

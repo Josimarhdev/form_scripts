@@ -25,7 +25,7 @@ cores_regionais = {
     "Valquíria": "91F0D3",
     "Luana": "FFD2DE",
     "Larissa": "EBC99F",
-    "Paranavaí": "9B59B6",
+    "Paranavaí": "B879D1",
     "Ana Paula": "993399",
     "Londrina": "A9C5E6",
     "Francisco Beltrão": "B2FFFF",
