@@ -45,7 +45,7 @@ if tem_credenciais:
     try:
         # Tenta executar o script de integração
         exec(open("scripts/script_integracao.py").read())
-        print(">>> Integração finalizada com sucesso.")
+        print("Integração finalizado com sucesso.")
     except Exception as e:
         # Se der erro, captura o erro e continua o fluxo
         print(f"[ERRO] Falha ao executar a integração com o banco: {e}")
